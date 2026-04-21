@@ -1,0 +1,10 @@
+name: NMR_2D_plot
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python >=3.12
+  - numpy
+  - pandas
+  - matplotlib-base
+  - nmrglue
