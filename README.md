@@ -47,7 +47,7 @@ data = [
 Select the pre-configured axis limits and labels for your experiment:
 
 ```Pythons
-pectra_type = "15N"  # Options: "15N", "13C", "CON", "ZOOM", "SIZE"
+spectra_type = "15N"  # Options: "15N", "13C", "CON", "ZOOM", "SIZE"
 ```
 
 ### 3. Generate Plots
