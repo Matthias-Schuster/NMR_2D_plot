@@ -8,7 +8,7 @@ Built on `matplotlib` and `nmrglue`, this tool reads Bruker processed data (`pda
 * **Direct Bruker Integration:** Reads processed NMR data natively using `nmrglue`.
 * **Smart Contour Caching:** Caches calculated contour vertices in memory, drastically speeding up the rendering of complex overlays and grid plots.
 * **Versatile Plot Types:** Generate individual plots, multi-spectrum overlays, multi-panel grids, and overlaid grids.
-* **Pre-configured Spectra Presets:** Out-of-the-box styling and axis limits for standard 2D experiments (e.g., $^1$H-$^{15}$N HSQC, $^1$H-$^{13}$C HSQC, CON).
+* **Pre-configured Spectra Presets:** Out-of-the-box styling and axis limits for standard 2D experiments (e.g., 15N-HSQC, 13C-HSQC, CON).
 * **Publication Ready:** Easy export to high-DPI PNGs or vector graphic SVGs.
 
 ## ⚙️ Installation
@@ -59,7 +59,7 @@ At the bottom of NMR_plot.py, toggle the boolean flags (if True:) to generate th
 * Custom Grid Overlays: Define specific groupings of spectra for each individual grid panel using grid_plot_over_xp.
 
 ## 🎨 Customization
-You can fine-tune your figures in the # %% SETUP PARAMETERS section of NMR_plot.py:
+You can fine-tune your figures in the SETUP PARAMETERS section of NMR_plot.py:
 * Contour adjustments: Change lines (number of contour levels) and factor (spacing between levels).
 * Negative contours: Set negative = True and pick a neg_color to render negative intensities as dashed lines.
 * Typography: Toggle the Arial flag to easily switch between sans-serif (Arial) and serif (Times New Roman) fonts.
