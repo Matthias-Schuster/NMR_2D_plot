@@ -7,4 +7,6 @@ dependencies:
   - numpy
   - pandas
   - matplotlib-base
-  - nmrglue
+  - pip
+  - pip:
+    - nmrglue
