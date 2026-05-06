@@ -15,7 +15,7 @@ data = [
     ('250905_Protein_1/700',        "Protein 1",         7e7,    "black"),
     ('250905_Protein_2/700',        "Protein 2",         5e8,    "#000000"),
     ('250905_Protein_3/700',        "Protein 3",         6e8,    "tab:blue"),
-    ('250905_Protein_3/700',        "Protein 4",        12e8,    [0.839, 0.153, 0.157]),
+    ('250905_Protein_4/700',        "Protein 4",        12e8,    [0.839, 0.153, 0.157]),
 
 ]
 
