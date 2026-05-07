@@ -7,7 +7,7 @@ import Plot_func as pf
 # %% IMPORT ALL SPECTRA
 
 # directory of your NMR files
-base_dir = Path("/User/Documents/NMR_Spectra/")
+base_dir = Path("/User/Documents/NMR_Spectra")
 
 # Data Format (folder, name, contour, color)
 data = [
@@ -141,11 +141,11 @@ plt.rcParams["figure.titlesize"] = 20
 Arial = True
 if Arial:
     plt.rcParams["font.family"] = "sans-serif"
-    plt.rcParams["font.sans-serif"] = "Arial"
+    plt.rcParams["font.sans-serif"] = ["Arial", "DejaVu Sans"]
     plt.rcParams["mathtext.fontset"] = "dejavusans"
 else:
     plt.rcParams["font.family"] = "serif"
-    plt.rcParams["font.serif"] = "Times New Roman"
+    plt.rcParams["font.serif"] = ["Times New Roman", "DejaVu Serif"]
     plt.rcParams["mathtext.fontset"] = "stix"
 
 plt.rcParams["xtick.direction"] = "out"
