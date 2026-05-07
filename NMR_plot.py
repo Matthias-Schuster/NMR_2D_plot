@@ -52,11 +52,11 @@ labelpad_x = -8         # distance of the x label to the axis in individual plot
 labelpad_y = 9          # distance of the y label to the axis in individual plots
 
 alpha = 0.8             # transparency for overlay
-negative = False        # negative conture levels
-neg_color = "magenta"   # negative conture level color
+negative = False        # negative contour levels
+neg_color = "magenta"   # negative contour level color
 
 first_x = False         # visibility of the first x-tick label
-first_y = False         # visibility of the first x-tick label
+first_y = False         # visibility of the first y-tick label
 legend = True           # visibility of the legend in overlay plots
 
 # GRIDPLOT PARAMETERS
@@ -69,40 +69,40 @@ grid_y = 0.06           # distance of the y label to the axis in the grid_plot
 
 if spectra_type == "15N":
     xlim, ylim = (11.2, 6.2), (134, 104)
-    x_label, y_label = "$^1$H [ppm]", "$^1$$^5$N\n[ppm]"
-    y_label_grid = "$^1$$^5$N [ppm]"
+    x_label, y_label = "$^1$H [ppm]", "$^{15}$N\n[ppm]"
+    y_label_grid = "$^{15}$N [ppm]"
     xticks, xminorticks = 1, 0.5
     yticks, yminorticks = 5, 1
     line_width = 0.3
 
 elif spectra_type == "13C":
     xlim, ylim = (1.51, -0.58), (28, 18.2)
-    x_label, y_label = "$^1$H [ppm]", "$^1$$^3$C\n[ppm]"
-    y_label_grid = "$^1$$^3$C [ppm]"
+    x_label, y_label = "$^1$H [ppm]", "$^{13}$C\n[ppm]"
+    y_label_grid = "$^{13}$C [ppm]"
     xticks, xminorticks = 0.5, 0.1
     yticks, yminorticks = 5, 1
     line_width = 0.6
 
 elif spectra_type == "CON":
     xlim, ylim = (178, 168), (140, 108)
-    x_label, y_label = "$^1$$^3$C [ppm]", "$^1$$^5$N\n[ppm]"
-    y_label_grid = "$^1$$^5$N [ppm]"
+    x_label, y_label = "$^{13}$C [ppm]", "$^{15}$N\n[ppm]"
+    y_label_grid = "$^{15}$N [ppm]"
     xticks, xminorticks = 2, 0.5
     yticks, yminorticks = 5, 1
     line_width = 0.3
 
 elif spectra_type == "ZOOM":
     xlim, ylim = (8.8, 8), (118, 114)
-    x_label, y_label = "$^1$H [ppm]", "$^1$$^5$N\n[ppm]"
-    y_label_grid = "$^1$$^5$N [ppm]"
+    x_label, y_label = "$^1$H [ppm]", "$^{15}$N\n[ppm]"
+    y_label_grid = "$^{15}$N [ppm]"
     xticks, xminorticks = 0.2, 0.05
     yticks, yminorticks = 2, 0.5
     line_width = 0.6
 
 elif spectra_type == "SIZE":
     xlim, ylim = (8.9, 6.6), (130, 110)
-    x_label, y_label = "$^1$H [ppm]", "$^1$$^5$N\n[ppm]"
-    y_label_grid = "$^1$$^5$N [ppm]"
+    x_label, y_label = "$^1$H [ppm]", "$^{15}$N\n[ppm]"
+    y_label_grid = "$^{15}$N [ppm]"
     xticks, xminorticks = 0.5, 0.25
     yticks, yminorticks = 5, 1
     line_width = 0.3
