@@ -7,29 +7,27 @@ import Plot_func as pf
 # %% IMPORT ALL SPECTRA
 
 # directory of your NMR files
-base_dir = Path('/User/Documents/NMR_Spectra/')
+base_dir = Path("/User/Documents/NMR_Spectra/")
 
 # Data Format (folder, name, contour, color)
 data = [
-
-    ('250905_Protein_1/700',        "Protein 1",         7e7,    "black"),
-    ('250905_Protein_2/700',        "Protein 2",         5e8,    "#000000"),
-    ('250905_Protein_3/700',        "Protein 3",         6e8,    "tab:blue"),
-    ('250905_Protein_4/700',        "Protein 4",        12e8,    [0.839, 0.153, 0.157]),
-
+    ("250905_Protein_1/700",    "Protein 1",    7e7,    "black"),
+    ("250905_Protein_2/700",    "Protein 2",    5e8,    "#000000"),
+    ("250905_Protein_3/700",    "Protein 3",    6e8,    "tab:blue"),
+    ("250905_Protein_4/700",    "Protein 4",    12e8,   [0.839, 0.153, 0.157]),
 ]
 
 # subdirectory of your processed files
-sub_dir = 'pdata/1'
+sub_dir = "pdata/1"
 
-df = pd.DataFrame(data, columns=['folder', 'name', 'contour', 'color'])
-df['full_path'] = df['folder'].apply(lambda x: str(base_dir / x / sub_dir))
+df = pd.DataFrame(data, columns=["folder", "name", "contour", "color"])
+df["full_path"] = df["folder"].apply(lambda x: str(base_dir / x / sub_dir))
 
-files = df['full_path']
-file_names = df['name']
-cont = df['contour']
-colors = df['color']
-# colors = pf.colormap(files, maps="viridis")  # use a colormap
+files = df["full_path"]
+file_names = df["name"]
+cont = df["contour"]
+colors = df["color"]
+# colors = pf.colormap(files, maps='viridis')  # use a colormap
 
 # %% SELECT YOUR SPECTRA TYPE
 
@@ -40,27 +38,31 @@ spectra_type = "15N"
 
 # %% SETUP PARAMETERS
 
-dpi = 300                    # dpi of the figure
-save_png = False             # saves svg files (makes it slower)
-save_svg = False             # saves svg files (makes it much slower)
+dpi = 300               # dpi of the figure
+save_png = False        # saves png files (makes it slower)
+save_svg = False        # saves svg files (makes it much slower)
 
-xsize = 5                    # size of the figure in inch (or of one subplot in the grid-plot)
+xsize = 5               # size of the figure in inch (or of one subplot in the grid-plot)
 ysize = 4
 
-lines = 25                   # number of contour lines
-factor = 1.2                 # distance between contour lines
+lines = 25              # number of contour lines
+factor = 1.2            # distance between contour lines
 
-labelpad_x = -8              # distance of the x label to the axis in individual plots
-labelpad_y = 9               # distance of the y label to the axis in individual plots
+labelpad_x = -8         # distance of the x label to the axis in individual plots
+labelpad_y = 9          # distance of the y label to the axis in individual plots
 
-alpha = 0.8                  # transparency for overlay
-negative = False             # negative conture levels
-neg_color = "magenta"        # negative conture level color
+alpha = 0.8             # transparency for overlay
+negative = False        # negative conture levels
+neg_color = "magenta"   # negative conture level color
+
+first_x = False         # visibility of the first x-tick label
+first_y = False         # visibility of the first x-tick label
+legend = True           # visibility of the legend in overlay plots
 
 # GRIDPLOT PARAMETERS
-title_y = 0.88               # distance of the title to the axis in the grid_plot
-grid_x = 0.05                # distance of the x label to the axis in the grid_plot
-grid_y = 0.06                # distance of the y label to the axis in the grid_plot
+title_y = 0.88          # distance of the title to the axis in the grid_plot
+grid_x = 0.05           # distance of the x label to the axis in the grid_plot
+grid_y = 0.06           # distance of the y label to the axis in the grid_plot
 
 
 # %% SPECTRA TYPE PARAMETERS
@@ -108,46 +110,47 @@ elif spectra_type == "SIZE":
     ysize = 7
 
 else:
-    raise ValueError(f"Invalid spectra_type: '{spectra_type}'. "
-                     f"Must be one of the available types!")
+    raise ValueError(
+        f"Invalid spectra_type: '{spectra_type}'. Must be one of the available types!"
+    )
 
 
 # %% ADDITIONAL SETUP PARAMETERS
 
 # LINEWIDTH AND FONT SIZE
-plt.rcParams['axes.linewidth'] = 1
+plt.rcParams["axes.linewidth"] = 1
 
 tick_width = 1
-plt.rcParams['xtick.major.width'] = tick_width
-plt.rcParams['ytick.major.width'] = tick_width
-plt.rcParams['xtick.minor.width'] = tick_width
-plt.rcParams['ytick.minor.width'] = tick_width
+plt.rcParams["xtick.major.width"] = tick_width
+plt.rcParams["ytick.major.width"] = tick_width
+plt.rcParams["xtick.minor.width"] = tick_width
+plt.rcParams["ytick.minor.width"] = tick_width
 
 labels = True
 titles = True
-plt.rcParams['font.size'] = 10
-plt.rcParams['axes.titlesize'] = 12
-plt.rcParams['axes.labelsize'] = 9
-plt.rcParams['xtick.labelsize'] = 10
-plt.rcParams['ytick.labelsize'] = 10
-plt.rcParams['legend.fontsize'] = 8
-plt.rcParams['figure.titlesize'] = 20
+plt.rcParams["font.size"] = 10
+plt.rcParams["axes.titlesize"] = 12
+plt.rcParams["axes.labelsize"] = 9
+plt.rcParams["xtick.labelsize"] = 10
+plt.rcParams["ytick.labelsize"] = 10
+plt.rcParams["legend.fontsize"] = 8
+plt.rcParams["figure.titlesize"] = 20
 
 # FONT FAMILY
 # -- Choose ARIAL or TIMES--
 Arial = True
 if Arial:
-    plt.rcParams['font.family'] = 'sans-serif'
+    plt.rcParams["font.family"] = "sans-serif"
     plt.rcParams["font.sans-serif"] = "Arial"
     plt.rcParams["mathtext.fontset"] = "dejavusans"
 else:
-    plt.rcParams['font.family'] = 'serif'
-    plt.rcParams['font.serif'] = "Times New Roman"
+    plt.rcParams["font.family"] = "serif"
+    plt.rcParams["font.serif"] = "Times New Roman"
     plt.rcParams["mathtext.fontset"] = "stix"
 
-plt.rcParams['xtick.direction'] = 'out'
-plt.rcParams['ytick.direction'] = 'out'
-plt.rcParams['axes.facecolor'] = 'None'
+plt.rcParams["xtick.direction"] = "out"
+plt.rcParams["ytick.direction"] = "out"
+plt.rcParams["axes.facecolor"] = "None"
 
 # %% LOAD DATA INTO THE MEMORY
 print("Loading NMR data into memory...")
@@ -156,39 +159,42 @@ dic_all, data_all = pf.read_data(files)
 # %% INFO PARAMETERS
 # -- Info parameters which will be transferred to the plot functions --
 p = {
-    'dic_all': dic_all,
-    'data_all': data_all,
-    'files': files,
-    'file_names': file_names,
-    'cont': cont,
-    'colors': colors,
-    'dpi': dpi,
-    'xlim': xlim,
-    'ylim': ylim,
-    'xsize': xsize,
-    'ysize': ysize,
-    'lines': lines,
-    'factor': factor,
-    'line_width': line_width,
-    'xticks': xticks,
-    'xminorticks': xminorticks,
-    'yticks': yticks,
-    'yminorticks': yminorticks,
-    'labelpad_x': labelpad_x,
-    'labelpad_y': labelpad_y,
-    'title_y': title_y,
-    'x_label': x_label,
-    'y_label': y_label,
-    'y_label_grid': y_label_grid,
-    'grid_x': grid_x,
-    'grid_y': grid_y,
-    'titles': titles,
-    'labels': labels,
-    'alpha': alpha,
-    'negative': negative,
-    'neg_color': neg_color,
-    'save_svg': save_svg,
-    'save_png': save_png
+    "dic_all": dic_all,
+    "data_all": data_all,
+    "files": files,
+    "file_names": file_names,
+    "cont": cont,
+    "colors": colors,
+    "dpi": dpi,
+    "xlim": xlim,
+    "ylim": ylim,
+    "xsize": xsize,
+    "ysize": ysize,
+    "lines": lines,
+    "factor": factor,
+    "line_width": line_width,
+    "xticks": xticks,
+    "xminorticks": xminorticks,
+    "yticks": yticks,
+    "yminorticks": yminorticks,
+    "labelpad_x": labelpad_x,
+    "labelpad_y": labelpad_y,
+    "title_y": title_y,
+    "x_label": x_label,
+    "y_label": y_label,
+    "y_label_grid": y_label_grid,
+    "grid_x": grid_x,
+    "grid_y": grid_y,
+    "titles": titles,
+    "labels": labels,
+    "alpha": alpha,
+    "negative": negative,
+    "neg_color": neg_color,
+    "save_svg": save_svg,
+    "save_png": save_png,
+    "first_x": first_x,
+    "first_y": first_y,
+    "legend": legend
 }
 
 
@@ -219,15 +225,21 @@ if True:
 if True:
     pf.grid_plot(p, row=2, col=2, folder="results/grid")
 
-# %% -- in "grid_plot_over" you need to define a spectra to overlay all others --
+    # %% -- in "grid_plot_over" you need to define a spectra to overlay all others --
 
     pf.grid_plot_over(p, over=0, row=2, col=2, folder="results/grid", reverse=False)
 
-# %% -- in "grid_plot_over_xp" you need to define overlay groups for each subplot --
+    # %% -- in "grid_plot_over_xp" you need to define overlay groups for each subplot --
 
-    pf.grid_plot_over_xp(p, row=2, col=2, folder="results/grid",
-                         overlay_groups=[[0, 1],
-                                         [2, 3],
-                                         [1, 2, 3],
-                                         [0, 2, 3],
-                                         ])
+    pf.grid_plot_over_xp(
+        p,
+        row=2,
+        col=2,
+        folder="results/grid",
+        overlay_groups=[
+            [0, 1],
+            [2, 3],
+            [1, 2, 3],
+            [0, 2, 3],
+        ],
+    )
