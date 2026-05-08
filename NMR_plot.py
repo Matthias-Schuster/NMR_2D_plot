@@ -119,7 +119,7 @@ else:
 
 # LINEWIDTH AND FONT SIZE
 plt.rcParams["axes.linewidth"] = 1
-plt.rcParams["svg.fonttype"] = "none"
+plt.rcParams["svg.fonttype"] = "none"       # set to "path" if you want the text as curves
 
 tick_width = 1
 plt.rcParams["xtick.major.width"] = tick_width
