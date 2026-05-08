@@ -119,6 +119,7 @@ else:
 
 # LINEWIDTH AND FONT SIZE
 plt.rcParams["axes.linewidth"] = 1
+plt.rcParams["svg.fonttype"] = "none"
 
 tick_width = 1
 plt.rcParams["xtick.major.width"] = tick_width
