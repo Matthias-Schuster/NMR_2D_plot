@@ -10,4 +10,4 @@ dependencies:
   - adjustText
   - pip
   - pip:
-  	- nmrglue
+    - nmrglue
