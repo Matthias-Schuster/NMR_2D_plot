@@ -8,7 +8,7 @@ import Plot_func as pf
 # directory of your NMR files
 base_dir = Path("/User/Documents/NMR_Spectra")
 
-# Data Format (folder, name, contour, color)
+# Data Format (folder, name, contour, color, label.csv(optional))
 data = [
     ("250905_Protein_1/700",    "Protein 1",    7e7,    "black"),
     ("250905_Protein_2/700",    "Protein 2",    5e8,    "#000000"),
