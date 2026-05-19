@@ -1,16 +1,45 @@
 import nmrglue as ng
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from pathlib import Path
 import matplotlib.ticker as mticker
 from matplotlib.collections import LineCollection
 from matplotlib.lines import Line2D
+from adjustText import adjust_text
+import os
+import contextlib
 
 # Global dictionary to store pre-calculated contour vertices
 _CONTOUR_CACHE = {}
 
 
 # --- HELPER FUNCTIONS ---
+
+
+def parse_plot_data(data, base_dir, default_sub_dir="pdata/1"):
+    """
+    Parses the input data list into individual Series for plotting.
+    Handles optional columns like csv_file dynamically.
+    Automatically appends the default pdata folder if none is specified in the path.
+    """
+    df = pd.DataFrame(data)
+
+    # Rename the first 4 columns, and grab the 5th if it exists
+    if len(df.columns) >= 5:
+        df.columns = ["folder", "name", "contour", "color", "csv_file"] + list(df.columns[5:])
+    else:
+        df.columns = ["folder", "name", "contour", "color"]
+        df["csv_file"] = None  # Create an empty column if no CSVs are provided
+
+    # If the user already wrote "pdata" in the folder name, use it as-is.
+    # Otherwise, append the default_sub_dir (pdata/1).
+    df["full_path"] = df["folder"].apply(
+        lambda x: str(base_dir / x) if "pdata" in str(x) else str(base_dir / x / default_sub_dir)
+    )
+
+    # Return the extracted columns as a tuple
+    return (df["full_path"], df["name"], df["contour"], df["color"], df["csv_file"])
 
 
 def save_and_clear(fig, folder, name, p):
@@ -145,6 +174,137 @@ def draw_contours(ax, dic, data, p, contour_start, color):
     return clp
 
 
+def hide_texts_outside_axes(ax, texts, arrows=None):
+    """
+    Hide text labels whose final adjusted bounding box lies outside the axes.
+    Also hides corresponding arrows if provided.
+    """
+    fig = ax.figure
+    fig.canvas.draw()
+
+    renderer = fig.canvas.get_renderer()
+    ax_bbox = ax.get_window_extent(renderer)
+
+    for i, text in enumerate(texts):
+        text_bbox = text.get_window_extent(renderer)
+
+        inside = (
+            text_bbox.x0 >= ax_bbox.x0
+            and text_bbox.x1 <= ax_bbox.x1
+            and text_bbox.y0 >= ax_bbox.y0
+            and text_bbox.y1 <= ax_bbox.y1
+        )
+
+        if not inside:
+            text.set_visible(False)
+
+            if arrows is not None and i < len(arrows):
+                arrows[i].set_visible(False)
+
+
+def add_labels_from_csv(ax, csv_file, p):
+    """
+    Reads positions from a CSV, creates text objects on the axis,
+    and returns the objects and coordinates to be adjusted later.
+    """
+    if not p.get("peak_labels", True):
+        return [], [], []
+
+    if not csv_file or pd.isna(csv_file):
+        return [], [], []
+
+    csv_path = Path("csv") / csv_file
+
+    if not csv_path.exists():
+        print(f"  -> Warning: CSV file not found at {csv_path.resolve()}")
+        return [], [], []
+
+    try:
+        df_labels = pd.read_csv(csv_path)
+
+        required_cols = ["Residue", "position_1", "position_2"]
+        if not all(col in df_labels.columns for col in required_cols):
+            print(f"  -> Warning: CSV file {csv_file} is missing required columns.")
+            return [], [], []
+
+        xlim = ax.get_xlim()
+        ylim = ax.get_ylim()
+
+        xmin, xmax = sorted(xlim)
+        ymin, ymax = sorted(ylim)
+
+        df_labels = df_labels[
+            (df_labels["position_1"] >= xmin)
+            & (df_labels["position_1"] <= xmax)
+            & (df_labels["position_2"] >= ymin)
+            & (df_labels["position_2"] <= ymax)
+        ]
+
+        if df_labels.empty:
+            return [], [], []
+
+        texts = []
+        x = df_labels["position_1"].to_numpy()
+        y = df_labels["position_2"].to_numpy()
+
+        for _, row in df_labels.iterrows():
+            t = ax.text(
+                row["position_1"],
+                row["position_2"],
+                str(row["Residue"]),
+                fontsize=p.get("label_fontsize", 6),
+                color="black",
+                ha="center",
+                va="center",
+                clip_on=False,
+            )
+            texts.append(t)
+
+        return texts, x.tolist(), y.tolist()
+
+    except Exception as e:
+        print(f"  -> Error reading or plotting {csv_file}: {e}")
+        return [], [], []
+
+
+def adjust_all_labels(ax, texts, x, y, p):
+    """Runs adjustText on a pooled collection of text objects from all overlaid spectra."""
+    if not texts:
+        return
+
+    ax.figure.canvas.draw()
+    np.random.seed(p.get("peak_seed", 42))
+
+    with open(os.devnull, "w") as fnull:
+        with contextlib.redirect_stdout(fnull):
+            adjusted_texts, arrows = adjust_text(
+                texts,
+                x=x,
+                y=y,
+                ax=ax,
+                prevent_crossings=True,
+                ensure_inside_axes=True,
+                expand_axes=False,
+                expand=p.get("expand", (1.75, 1.5)),
+                force_text=(0.2, 0.1),
+                force_static=(0.2, 0.1),
+                force_pull=(0.01, 0.01),
+                iter_lim=p.get("iter_lim", 100),
+                min_arrow_len=0,
+                arrowprops=dict(
+                    arrowstyle="-",
+                    color="black",
+                    lw=0.5,
+                    alpha=0.5,
+                    shrinkA=0.5,
+                    shrinkB=0,
+                ),
+            )
+
+    # Hide labels that ended up outside the axis after adjust_text
+    hide_texts_outside_axes(ax, adjusted_texts, arrows)
+
+
 # --- MAIN PLOTTING FUNCTIONS ---
 
 
@@ -162,8 +322,11 @@ def plot_everything(p, folder="results"):
         ax = fig.add_subplot()
 
         apply_formatting(ax, p, title=p["file_names"][i], add_labels=True)
-
         draw_contours(ax, dic_all[i], data_all[i], p, p["cont"][i], p["colors"][i])
+
+        # 2-Step Labeling
+        t, x, y = add_labels_from_csv(ax, p["csv_files"][i], p)
+        adjust_all_labels(ax, t, x, y, p)
 
         save_and_clear(fig, folder, f"{p['file_names'][i]}", p)
 
@@ -176,17 +339,29 @@ def overlay(p, get, name, folder="results"):
     fig = plt.figure(dpi=p["dpi"], figsize=(p["xsize"], p["ysize"]))
     ax = fig.add_subplot()
 
+    apply_formatting(ax, p, title=name, add_labels=True)
+
     h_all, names = [], []
+    all_texts, all_x, all_y = [], [], []
+
     for idx in get:
         if dic_all[idx] is None:
             continue
         names.append(p["file_names"][idx])
         clp = draw_contours(ax, dic_all[idx], data_all[idx], p, p["cont"][idx], p["colors"][idx])
+
+        # Collect labels from this spectrum
+        t, x, y = add_labels_from_csv(ax, p["csv_files"][idx], p)
+        all_texts.extend(t)
+        all_x.extend(x)
+        all_y.extend(y)
+
         h, _ = clp.legend_elements()
         if h:
             h_all.append(h[0])
 
-    apply_formatting(ax, p, title=name, add_labels=True)
+    # Adjust all pooled labels together to prevent overlaps
+    adjust_all_labels(ax, all_texts, all_x, all_y, p)
 
     if h_all and p.get("legend", True):
         leg = ax.legend(h_all, names, loc="upper left", framealpha=0.8, handlelength=1.5)
@@ -220,6 +395,10 @@ def grid_plot(p, row=2, col=2, folder="results"):
         if i < len(dic_all) and dic_all[i]:
             apply_formatting(ax, p, title=p["file_names"][i], is_grid=True)
             draw_contours(ax, dic_all[i], data_all[i], p, p["cont"][i], p["colors"][i])
+
+            # 2-Step Labeling
+            t, x, y = add_labels_from_csv(ax, p["csv_files"][i], p)
+            adjust_all_labels(ax, t, x, y, p)
         else:
             ax.axis("off")
 
@@ -255,20 +434,42 @@ def grid_plot_over(p, over, row=2, col=2, folder="results", reverse=False):
             apply_formatting(ax, p, title=p["file_names"][idx], is_grid=True)
             if dic_all[idx] is None or dic_all[over] is None:
                 continue
+
+            all_texts, all_x, all_y = [], [], []
+
             if not reverse:
                 # Draw Main spectrum (Bottom)
-                draw_contours(ax, dic_all[idx], data_all[idx], p, p["cont"][idx], p["colors"][idx])
+                draw_contours(
+                    ax, dic_all[idx], data_all[idx], p, p["cont"][idx], p["colors"][idx]
+                )
                 # Draw Overlay spectrum (Top)
                 draw_contours(
                     ax, dic_all[over], data_all[over], p, p["cont"][over], p["colors"][over]
                 )
-            if reverse:
+            else:
                 # Draw Overlay spectrum (Bottom)
                 draw_contours(
                     ax, dic_all[over], data_all[over], p, p["cont"][over], p["colors"][over]
                 )
                 # Draw Main spectrum (Top)
-                draw_contours(ax, dic_all[idx], data_all[idx], p, p["cont"][idx], p["colors"][idx])
+                draw_contours(
+                    ax, dic_all[idx], data_all[idx], p, p["cont"][idx], p["colors"][idx]
+                )
+
+            # 1. Labels for the main spectrum (idx)
+            t1, x1, y1 = add_labels_from_csv(ax, p["csv_files"][idx], p)
+            all_texts.extend(t1)
+            all_x.extend(x1)
+            all_y.extend(y1)
+
+            # 2. Labels for the overlay spectrum (over)
+            t2, x2, y2 = add_labels_from_csv(ax, p["csv_files"][over], p)
+            all_texts.extend(t2)
+            all_x.extend(x2)
+            all_y.extend(y2)
+
+            # Adjust labels for this subplot together
+            adjust_all_labels(ax, all_texts, all_x, all_y, p)
         else:
             ax.axis("off")
 
@@ -299,11 +500,13 @@ def grid_plot_over_xp(p, overlay_groups, row=2, col=2, folder="results"):
         if i < len(overlay_groups):
             apply_formatting(ax, p, is_grid=True)
             h_all, subplot_names = [], []
+            all_texts, all_x, all_y = [], [], []
 
             for spec_idx in overlay_groups[i]:
                 if dic_all[spec_idx] is None:
                     continue
                 subplot_names.append(p["file_names"][spec_idx])
+
                 clp = draw_contours(
                     ax,
                     dic_all[spec_idx],
@@ -312,9 +515,19 @@ def grid_plot_over_xp(p, overlay_groups, row=2, col=2, folder="results"):
                     p["cont"][spec_idx],
                     p["colors"][spec_idx],
                 )
+
+                # Collect labels
+                t, x, y = add_labels_from_csv(ax, p["csv_files"][spec_idx], p)
+                all_texts.extend(t)
+                all_x.extend(x)
+                all_y.extend(y)
+
                 h, _ = clp.legend_elements()
                 if h:
                     h_all.append(h[0])
+
+            # Adjust all pooled labels together
+            adjust_all_labels(ax, all_texts, all_x, all_y, p)
 
             if h_all and p.get("legend", True):
                 leg = ax.legend(
