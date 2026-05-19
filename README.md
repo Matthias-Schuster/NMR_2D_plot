@@ -30,23 +30,23 @@ conda activate NMR_2D_plot
 The main user interface is the NMR_plot.py script. You do not need to interact with Plot_func.py unless you want to change the underlying matplotlib logic.
 
 ### 1. Define Your Data
-In NMR_plot.py, locate the data list. Add your spectra using the following tuple format: ('folder_path', 'Spectrum_Name', contour_base_level, 'color').
+In NMR_plot.py, locate the data list. Add your spectra using the following tuple format: ('folder_path', 'Spectrum_Name', contour_base_level, 'color', 'optional_label.csv').
 The nef_extract script can generate a template for this input if you have loaded the spectra into ccpnmr3.
 
 ```Python
 base_dir = Path('/User/Documents/NMR_Spectra/')
-sub_dir = 'pdata/1'
 
 data = [
-    ('250905_Protein_1/700', "Protein 1", 7e7, "black"),
-    ('250905_Protein_2/700', "Protein 2", 5e8, "tab:blue"),
+    # (Folder, Name, Contour Start, Color, CSV File)
+    ('250905_Protein_1/700', "Protein 1", 7e7, "black", "Protein1_labels.csv"),
+    ('250905_Protein_2/700', "Protein 2", 5e8, "tab:blue"), # CSV is optional!
 ]
 ```
 
 ### 2. Choose Your Spectrum Type
 Select the pre-configured axis limits and labels for your experiment:
 
-```Pythons
+```Python
 spectra_type = "15N"  # Options: "15N", "13C", "CON", "ZOOM", "SIZE"
 ```
 
@@ -57,6 +57,37 @@ At the bottom of NMR_plot.py, toggle the boolean flags (if True:) to generate th
 * Grid Plots: Plots all loaded spectra in an $M \times N$ grid.
 * Overlaid Grids: Select a reference spectrum to overlay across all panels in your grid.
 * Custom Grid Overlays: Define specific groupings of spectra for each individual grid panel using grid_plot_over_xp.
+
+## 🏷️ Peak Labels via CSV (Optional)
+You can automatically annotate your NMR spectra with peak labels by providing a CSV file for each spectrum.
+
+### 1. Directory Setup
+Place your label CSV files inside a folder named csv/ in the same directory where you run your plotting script.
+
+```plaintext
+├── NMR_plot.py
+├── Plot_func.py
+└── csv/
+    ├── Protein1_labels.csv
+    └── Protein2_labels.csv
+```
+
+### 2. CSV Format
+The CSV file must contain the following exactly named columns:
+
+* Residue: The text label to display (e.g., "A24", "ASF1A").
+* position_1: The X-axis coordinate (e.g., ¹H ppm).
+* position_2: The Y-axis coordinate (e.g., ¹⁵N or ¹³C ppm).
+
+Example Protein1_labels.csv:
+
+```plaintext
+Residue,position_1,position_2
+A24,8.15,123.4
+G50,8.42,110.2
+```
+
+Once your CSV is in the csv/ folder, just add the filename as the 5th element in your data tuple (as shown in Step 1) and the script will automatically render and space out your labels!
 
 ## 🎨 Customization
 You can fine-tune your figures in the SETUP PARAMETERS section of NMR_plot.py:
