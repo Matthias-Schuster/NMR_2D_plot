@@ -17,16 +17,7 @@ data = [
     ("250905_Protein_4/700",    "Protein 4",    12e8,   [0.839, 0.153, 0.157]),
 ]
 
-# subdirectory of your processed files
-sub_dir = "pdata/1"
-
-df = pd.DataFrame(data, columns=["folder", "name", "contour", "color"])
-df["full_path"] = df["folder"].apply(lambda x: str(base_dir / x / sub_dir))
-
-files = df["full_path"]
-file_names = df["name"]
-cont = df["contour"]
-colors = df["color"]
+files, file_names, cont, colors, csv_files = pf.parse_plot_data(data, base_dir)
 # colors = pf.colormap(files, maps='viridis')  # use a colormap
 
 # %% SELECT YOUR SPECTRA TYPE
@@ -39,8 +30,8 @@ spectra_type = "15N"
 # %% SETUP PARAMETERS
 
 dpi = 300               # dpi of the figure
-save_png = False        # saves png files (makes it slower)
-save_svg = False        # saves svg files (makes it much slower)
+save_png = True         # saves svg files (makes it slower)
+save_svg = True         # saves svg files (makes it much slower)
 
 xsize = 5               # size of the figure in inch (or of one subplot in the grid-plot)
 ysize = 4
@@ -51,9 +42,9 @@ factor = 1.2            # distance between contour lines
 labelpad_x = -8         # distance of the x label to the axis in individual plots
 labelpad_y = 9          # distance of the y label to the axis in individual plots
 
-alpha = 0.8             # transparency for overlay
-negative = False        # negative contour levels
-neg_color = "magenta"   # negative contour level color
+alpha = 0.7             # transparency for overlay
+negative = False        # negative conture levels
+neg_color = "magenta"   # negative conture level color
 
 first_x = False         # visibility of the first x-tick label
 first_y = False         # visibility of the first y-tick label
@@ -63,6 +54,13 @@ legend = True           # visibility of the legend in overlay plots
 title_y = 0.88          # distance of the title to the axis in the grid_plot
 grid_x = 0.05           # distance of the x label to the axis in the grid_plot
 grid_y = 0.06           # distance of the y label to the axis in the grid_plot
+
+# Peaklabel PARAMETERS
+peak_labels = True     # toggle visibility of peak labels from CSV files
+expand = (1.6, 1.5)     # buffer size around the text to expand
+iter_lim = 42           # how many iterations should be used for the label-placement
+peak_seed = 42          # random seed - change if you want a different peak_label placement
+label_fontsize = 4      # size of the text
 
 
 # %% SPECTRA TYPE PARAMETERS
@@ -119,7 +117,7 @@ else:
 
 # LINEWIDTH AND FONT SIZE
 plt.rcParams["axes.linewidth"] = 1
-plt.rcParams["svg.fonttype"] = "none"       # set to "path" if you want the text as curves
+plt.rcParams["svg.fonttype"] = "none"  # set to "path" if you want the text as curves
 
 tick_width = 1
 plt.rcParams["xtick.major.width"] = tick_width
@@ -127,7 +125,7 @@ plt.rcParams["ytick.major.width"] = tick_width
 plt.rcParams["xtick.minor.width"] = tick_width
 plt.rcParams["ytick.minor.width"] = tick_width
 
-labels = True
+axis_labels = True
 titles = True
 plt.rcParams["font.size"] = 10
 plt.rcParams["axes.titlesize"] = 12
@@ -187,7 +185,7 @@ p = {
     "grid_x": grid_x,
     "grid_y": grid_y,
     "titles": titles,
-    "labels": labels,
+    "labels": axis_labels,
     "alpha": alpha,
     "negative": negative,
     "neg_color": neg_color,
@@ -195,7 +193,13 @@ p = {
     "save_png": save_png,
     "first_x": first_x,
     "first_y": first_y,
-    "legend": legend
+    "legend": legend,
+    "peak_labels": peak_labels,
+    "csv_files": csv_files.tolist(),
+    "label_fontsize": label_fontsize,
+    "expand": expand,
+    "iter_lim": iter_lim,
+    "peak_seed": peak_seed
 }
 
 
