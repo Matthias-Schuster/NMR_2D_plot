@@ -213,7 +213,7 @@ def add_labels_from_csv(ax, csv_file, p):
     if not csv_file or pd.isna(csv_file):
         return [], [], []
 
-    csv_path = Path("csv") / csv_file
+    csv_path = Path(p.get("csv_dir")) / csv_file
 
     if not csv_path.exists():
         print(f"  -> Warning: CSV file not found at {csv_path.resolve()}")
@@ -308,10 +308,11 @@ def adjust_all_labels(ax, texts, x, y, p):
 # --- MAIN PLOTTING FUNCTIONS ---
 
 
-def plot_everything(p, folder="results"):
+def plot_everything(p):
     dic_all = p["dic_all"]
     data_all = p["data_all"]
     files = p["files"]
+    folder = p.get("out_single")
     result_folder(folder)
 
     for i, f in enumerate(files):
@@ -331,9 +332,10 @@ def plot_everything(p, folder="results"):
         save_and_clear(fig, folder, f"{p['file_names'][i]}", p)
 
 
-def overlay(p, get, name, folder="results"):
+def overlay(p, get, name):
     dic_all = p["dic_all"]
     data_all = p["data_all"]
+    folder = p.get("out_overlay")
     result_folder(folder)
 
     fig = plt.figure(dpi=p["dpi"], figsize=(p["xsize"], p["ysize"]))
@@ -371,9 +373,10 @@ def overlay(p, get, name, folder="results"):
     save_and_clear(fig, folder, f"overlay_{name}", p)
 
 
-def grid_plot(p, row=2, col=2, folder="results"):
+def grid_plot(p, row=2, col=2):
     dic_all = p["dic_all"]
     data_all = p["data_all"]
+    folder = p.get("out_grid")
     result_folder(folder)
 
     fig, axes = plt.subplots(
@@ -405,9 +408,10 @@ def grid_plot(p, row=2, col=2, folder="results"):
     save_and_clear(fig, folder, "grid", p)
 
 
-def grid_plot_over(p, over, row=2, col=2, folder="results", reverse=False):
+def grid_plot_over(p, over, row=2, col=2, reverse=False):
     dic_all = p["dic_all"]
     data_all = p["data_all"]
+    folder = p.get("out_grid")
     result_folder(folder)
 
     # Prepare data (excluding the 'over' index for the grid base)
@@ -476,9 +480,10 @@ def grid_plot_over(p, over, row=2, col=2, folder="results", reverse=False):
     save_and_clear(fig, folder, "grid_over", p)
 
 
-def grid_plot_over_xp(p, overlay_groups, row=2, col=2, folder="results"):
+def grid_plot_over_xp(p, overlay_groups, row=2, col=2):
     dic_all = p["dic_all"]
     data_all = p["data_all"]
+    folder = p.get("out_grid")
     result_folder(folder)
 
     fig, axes = plt.subplots(

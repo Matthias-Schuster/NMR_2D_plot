@@ -1,16 +1,29 @@
 from pathlib import Path
 import matplotlib.pyplot as plt
-import Plot_func as pf
+from nmr_setup import setup_nmr_project
 
+# ==========================================
+# 1. AUTO-ROUTING & SYSTEM SETUP
+# ==========================================
+pf, PROJECT_NAME, paths = setup_nmr_project(__file__)
 
-# %% IMPORT ALL SPECTRA
+# ==========================================
+# 2. I/O HUB
+# ==========================================
+csv_dir = paths.csv_dir
+out_single = paths.out_single
+out_overlay = paths.out_overlay
+out_grid = paths.out_grid
 
-# directory of your NMR files
+# %% =======================================
+# 3. IMPORT ALL SPECTRA
+# ==========================================
+
 base_dir = Path("/User/Documents/NMR_Spectra")
 
 # Data Format (folder, name, contour, color, label.csv(optional))
 data = [
-    ("250905_Protein_1/700",    "Protein 1",    7e7,    "black"),
+    ("250905_Protein_1/700",    "Protein 1",    7e7,    "black",        "Protein_1_pos.csv"),
     ("250905_Protein_2/700",    "Protein 2",    5e8,    "#000000"),
     ("250905_Protein_3/700",    "Protein 3",    6e8,    "tab:blue"),
     ("250905_Protein_4/700",    "Protein 4",    12e8,   [0.839, 0.153, 0.157]),
@@ -198,7 +211,11 @@ p = {
     "label_fontsize": label_fontsize,
     "expand": expand,
     "iter_lim": iter_lim,
-    "peak_seed": peak_seed
+    "peak_seed": peak_seed,
+    "csv_dir": csv_dir,
+    "out_single": out_single,
+    "out_grid": out_grid,
+    "out_overlay": out_overlay,
 }
 
 
@@ -211,27 +228,25 @@ for i, name in enumerate(file_names):
 print("-------------------------\n")
 
 # %% PLOT ALL SPECTRA
-# -- you can define a "folder" for all plots --
-# -- if no folder is defined everything will be saved in the "results" folder --
 if True:
-    pf.plot_everything(p, folder="results/single")
+    pf.plot_everything(p)
 
 # %% PLOT INDIVIDUAL OVERLAYS
 # -- you need to define a "name" for the overlay plot --
 # -- you can plot all combinations, the last number will be on top --
 
 if True:
-    pf.overlay(p, [0, 1], name="overlay 1", folder="results/over")
-    pf.overlay(p, [2, 3], name="overlay 2", folder="results/over")
+    pf.overlay(p, [1, 2], name="over1")
+    pf.overlay(p, [2, 1], name="over2")
 
 # %% PLOT ALL SPECTRA IN A GRID
 # -- in "grid_plot" you need to define a row and a col for the grid --
 if True:
-    pf.grid_plot(p, row=2, col=2, folder="results/grid")
+    pf.grid_plot(p, row=2, col=2)
 
     # %% -- in "grid_plot_over" you need to define a spectra to overlay all others --
 
-    pf.grid_plot_over(p, over=0, row=2, col=2, folder="results/grid", reverse=False)
+    pf.grid_plot_over(p, over=0, row=2, col=2, reverse=False)
 
     # %% -- in "grid_plot_over_xp" you need to define overlay groups for each subplot --
 
@@ -239,11 +254,9 @@ if True:
         p,
         row=2,
         col=2,
-        folder="results/grid",
         overlay_groups=[
-            [0, 1],
-            [2, 3],
+            [1, 2],
+            [2, 1],
             [1, 2, 3],
-            [0, 2, 3],
         ],
     )
