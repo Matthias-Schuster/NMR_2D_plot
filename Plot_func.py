@@ -84,7 +84,7 @@ def apply_formatting(ax, p, title=None, is_grid=False, add_labels=False):
     # Hide the first x-tick label
     if p.get("first_x", False):
         xticklabels = ax.get_xticklabels()
-        if len(xticklabels) >= 2 and not is_grid:
+        if len(xticklabels) >= 2:
             xticklabels[-2].set_visible(False)
 
     # Hide the top y-tick label
