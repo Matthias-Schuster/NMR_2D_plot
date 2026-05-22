@@ -44,17 +44,23 @@ def parse_plot_data(data, base_dir, default_sub_dir="pdata/1"):
 
 def save_and_clear(fig, folder, name, p):
     """Handles multi-format saving, showing, and memory cleanup."""
+
+    if "spectra_type" in p:
+        name = f"{name}_{p['spectra_type']}"
+
     save_base = Path(folder) / name
+
     # Save PNG and SVG
-    if p["save_png"]:
+    if p.get("save_png", False):
         fig.savefig(
             save_base.with_suffix(".png"),
             transparent=False,
             bbox_inches="tight",
             dpi=p.get("dpi", 300),
         )
-    if p["save_svg"]:
+    if p.get("save_svg", False):
         fig.savefig(save_base.with_suffix(".svg"), transparent=False, bbox_inches="tight")
+
     plt.show()
     plt.close(fig)
 
