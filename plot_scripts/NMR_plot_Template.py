@@ -58,8 +58,8 @@ alpha = 0.7             # transparency for overlay
 negative = False        # negative conture levels
 neg_color = "magenta"   # negative conture level color
 
-first_x = False         # visibility of the first x-tick label
-first_y = False         # visibility of the first y-tick label
+first_x = False         # hides the first x-tick label
+first_y = False         # hides the first y-tick label
 legend = True           # visibility of the legend in overlay plots
 
 # GRIDPLOT PARAMETERS
