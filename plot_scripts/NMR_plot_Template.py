@@ -5,7 +5,7 @@ from nmr_setup import setup_nmr_project
 # ==========================================
 # 1. AUTO-ROUTING & SYSTEM SETUP
 # ==========================================
-_, PROJECT_NAME, paths = setup_nmr_project(__file__)
+PROJECT_NAME, paths = setup_nmr_project(__file__)
 import Plot_func as pf
 
 # ==========================================
