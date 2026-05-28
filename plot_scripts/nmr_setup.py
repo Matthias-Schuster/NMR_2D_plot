@@ -1,7 +1,5 @@
 from pathlib import Path
 import sys
-import importlib
-
 
 def setup_nmr_project(
     script_file,
@@ -29,13 +27,10 @@ def setup_nmr_project(
     # Project root is one level above plot_scripts/
     root_dir = script_dir.parent
 
-    # Make Plot_func.py importable from the project root
+    # Make root directory modules importable
     root_dir_str = str(root_dir)
     if root_dir_str not in sys.path:
         sys.path.insert(0, root_dir_str)
-
-    # Import Plot_func.py from the root directory
-    pf = importlib.import_module("Plot_func")
 
     # Extract project name from filename
     script_name = script_path.stem
@@ -48,7 +43,7 @@ def setup_nmr_project(
     # Define paths
     project_out = root_dir / results_folder / project_name
 
-    # Group paths in a dictionary instead of a class
+    # Group paths in a dictionary
     paths = {
         "script_dir": script_dir,
         "root_dir": root_dir,
@@ -75,4 +70,4 @@ def setup_nmr_project(
         print(f"Output dir:   {paths['project_out']}")
         print("-----------------------------\n")
 
-    return pf, project_name, paths
+    return project_name, paths
