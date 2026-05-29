@@ -11,10 +11,10 @@ import Plot_func as pf
 # ==========================================
 # 2. I/O HUB
 # ==========================================
-csv_dir = paths.csv_dir
-out_single = paths.out_single
-out_overlay = paths.out_overlay
-out_grid = paths.out_grid
+csv_dir = paths["csv_dir"]
+out_single = paths["out_single"]
+out_overlay = paths["out_overlay"]
+out_grid = paths["out_grid"]
 
 # %% =======================================
 # 3. IMPORT ALL SPECTRA
