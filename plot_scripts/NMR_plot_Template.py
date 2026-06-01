@@ -44,7 +44,7 @@ spectra_type = "15N"
 
 dpi = 300               # dpi of the figure
 save_png = True         # saves svg files (makes it slower)
-save_svg = True         # saves svg files (makes it much slower)
+save_svg = False        # saves svg files (makes it much slower)
 
 xsize = 5               # size of the figure in inch (or of one subplot in the grid-plot)
 ysize = 4
@@ -232,17 +232,18 @@ print("-------------------------\n")
 if True:
     pf.plot_everything(p)
 
-# %% PLOT INDIVIDUAL OVERLAYS
+# %% PLOT INDIVIDUAL SPECTRA OR OVERLAYS
 # -- you need to define a "name" for the overlay plot --
 # -- you can plot all combinations, the last number will be on top --
 
-if True:
+if False:
+    pf.overlay(p, [1], name="prot1")
     pf.overlay(p, [1, 2], name="over1")
     pf.overlay(p, [2, 1], name="over2")
 
 # %% PLOT ALL SPECTRA IN A GRID
 # -- in "grid_plot" you need to define a row and a col for the grid --
-if True:
+if False:
     pf.grid_plot(p, row=2, col=2)
 
     # %% -- in "grid_plot_over" you need to define a spectra to overlay all others --
