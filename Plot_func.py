@@ -59,7 +59,7 @@ def save_and_clear(fig, folder, name, p):
             dpi=p.get("dpi", 300),
         )
     if p.get("save_svg", False):
-        fig.savefig(save_base.with_suffix(".svg"), transparent=False, bbox_inches="tight")
+        fig.savefig(save_base.with_suffix(".svg"), transparent=True, bbox_inches="tight")
 
     plt.show()
     plt.close(fig)
@@ -94,14 +94,14 @@ def apply_formatting(ax, p, title=None, is_grid=False, add_labels=False):
             yticklabels[1].set_visible(False)
 
     if add_labels and p["labels"]:
-        ax.set_xlabel(p["x_label"], loc="left", labelpad=p["labelpad_x"], backgroundcolor="w")
+        ax.set_xlabel(p["x_label"], loc="left", labelpad=p["labelpad_x"], backgroundcolor="None")
         ax.set_ylabel(
             p["y_label"],
             loc="top",
             labelpad=p["labelpad_y"],
             rotation="horizontal",
             ma="center",
-            backgroundcolor="w",
+            backgroundcolor="None",
         )
 
 
