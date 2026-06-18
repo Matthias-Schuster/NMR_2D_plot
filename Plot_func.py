@@ -619,7 +619,7 @@ def overlay(p, get, name):
     save_and_clear(fig, folder, f"overlay_{name}", p)
 
 
-def grid_plot(p, row=2, col=2):
+def grid_plot(p, row=2, col=2, name="grid"):
     dic_all = p["dic_all"]
     data_all = p["data_all"]
     folder = p.get("out_grid")
@@ -651,10 +651,10 @@ def grid_plot(p, row=2, col=2):
         else:
             ax.axis("off")
 
-    save_and_clear(fig, folder, "grid", p)
+    save_and_clear(fig, folder, name, p)
 
 
-def grid_plot_over(p, over, row=2, col=2, reverse=False):
+def grid_plot_over(p, over, row=2, col=2, reverse=False, name="grid_over"):
     dic_all = p["dic_all"]
     data_all = p["data_all"]
     folder = p.get("out_grid")
@@ -691,14 +691,10 @@ def grid_plot_over(p, over, row=2, col=2, reverse=False):
                 # Draw Main spectrum (Bottom)
                 draw_contours(ax, dic_all[idx], data_all[idx], p, p["cont"][idx], p["colors"][idx])
                 # Draw Overlay spectrum (Top)
-                draw_contours(
-                    ax, dic_all[over], data_all[over], p, p["cont"][over], p["colors"][over]
-                )
+                draw_contours(ax, dic_all[over], data_all[over], p, p["cont"][over], p["colors"][over])
             else:
                 # Draw Overlay spectrum (Bottom)
-                draw_contours(
-                    ax, dic_all[over], data_all[over], p, p["cont"][over], p["colors"][over]
-                )
+                draw_contours(ax, dic_all[over], data_all[over], p, p["cont"][over], p["colors"][over])
                 # Draw Main spectrum (Top)
                 draw_contours(ax, dic_all[idx], data_all[idx], p, p["cont"][idx], p["colors"][idx])
 
@@ -719,10 +715,10 @@ def grid_plot_over(p, over, row=2, col=2, reverse=False):
         else:
             ax.axis("off")
 
-    save_and_clear(fig, folder, "grid_over", p)
+    save_and_clear(fig, folder, name, p)
 
 
-def grid_plot_over_xp(p, overlay_groups, row=2, col=2):
+def grid_plot_over_xp(p, overlay_groups, row=2, col=2, name="grid_over_xp"):
     dic_all = p["dic_all"]
     data_all = p["data_all"]
     folder = p.get("out_grid")
@@ -754,14 +750,7 @@ def grid_plot_over_xp(p, overlay_groups, row=2, col=2):
                     continue
                 subplot_names.append(p["file_names"][spec_idx])
 
-                clp = draw_contours(
-                    ax,
-                    dic_all[spec_idx],
-                    data_all[spec_idx],
-                    p,
-                    p["cont"][spec_idx],
-                    p["colors"][spec_idx],
-                )
+                clp = draw_contours(ax, dic_all[spec_idx], data_all[spec_idx], p, p["cont"][spec_idx], p["colors"][spec_idx])
 
                 # Collect labels
                 t, x, y = add_labels_from_csv(ax, p["csv_files"][spec_idx], p)
@@ -777,15 +766,13 @@ def grid_plot_over_xp(p, overlay_groups, row=2, col=2):
             adjust_all_labels(ax, all_texts, all_x, all_y, p)
 
             if h_all and p.get("legend", True):
-                leg = ax.legend(
-                    h_all, subplot_names, loc="upper left", framealpha=0.8, handlelength=1.5
-                )
+                leg = ax.legend(h_all, subplot_names, loc="upper left", framealpha=0.8, handlelength=1.5)
                 for line in leg.get_lines():
                     line.set_linewidth(2.0)
         else:
             ax.axis("off")
 
-    save_and_clear(fig, folder, "grid_over_xp", p)
+    save_and_clear(fig, folder, name, p)
 
 
 # --- UTILITIES ---
