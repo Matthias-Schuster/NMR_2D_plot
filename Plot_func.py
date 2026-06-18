@@ -13,6 +13,8 @@ from adjustText import adjust_text
 import os
 import contextlib
 
+# Plot_func V1.1
+
 # Global dictionary to store pre-calculated contour vertices
 _CONTOUR_CACHE = {}
 
@@ -691,10 +693,14 @@ def grid_plot_over(p, over, row=2, col=2, reverse=False, name="grid_over"):
                 # Draw Main spectrum (Bottom)
                 draw_contours(ax, dic_all[idx], data_all[idx], p, p["cont"][idx], p["colors"][idx])
                 # Draw Overlay spectrum (Top)
-                draw_contours(ax, dic_all[over], data_all[over], p, p["cont"][over], p["colors"][over])
+                draw_contours(
+                    ax, dic_all[over], data_all[over], p, p["cont"][over], p["colors"][over]
+                )
             else:
                 # Draw Overlay spectrum (Bottom)
-                draw_contours(ax, dic_all[over], data_all[over], p, p["cont"][over], p["colors"][over])
+                draw_contours(
+                    ax, dic_all[over], data_all[over], p, p["cont"][over], p["colors"][over]
+                )
                 # Draw Main spectrum (Top)
                 draw_contours(ax, dic_all[idx], data_all[idx], p, p["cont"][idx], p["colors"][idx])
 
@@ -750,7 +756,14 @@ def grid_plot_over_xp(p, overlay_groups, row=2, col=2, name="grid_over_xp"):
                     continue
                 subplot_names.append(p["file_names"][spec_idx])
 
-                clp = draw_contours(ax, dic_all[spec_idx], data_all[spec_idx], p, p["cont"][spec_idx], p["colors"][spec_idx])
+                clp = draw_contours(
+                    ax,
+                    dic_all[spec_idx],
+                    data_all[spec_idx],
+                    p,
+                    p["cont"][spec_idx],
+                    p["colors"][spec_idx],
+                )
 
                 # Collect labels
                 t, x, y = add_labels_from_csv(ax, p["csv_files"][spec_idx], p)
@@ -766,7 +779,9 @@ def grid_plot_over_xp(p, overlay_groups, row=2, col=2, name="grid_over_xp"):
             adjust_all_labels(ax, all_texts, all_x, all_y, p)
 
             if h_all and p.get("legend", True):
-                leg = ax.legend(h_all, subplot_names, loc="upper left", framealpha=0.8, handlelength=1.5)
+                leg = ax.legend(
+                    h_all, subplot_names, loc="upper left", framealpha=0.8, handlelength=1.5
+                )
                 for line in leg.get_lines():
                     line.set_linewidth(2.0)
         else:

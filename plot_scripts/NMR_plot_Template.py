@@ -2,6 +2,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from nmr_setup import setup_nmr_project
 
+# Template for Plot_func V1.1
+
 # ==========================================
 # 1. AUTO-ROUTING & SYSTEM SETUP
 # ==========================================
