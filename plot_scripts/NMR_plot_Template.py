@@ -69,11 +69,15 @@ grid_x = 0.05           # distance of the x label to the axis in the grid_plot
 grid_y = 0.06           # distance of the y label to the axis in the grid_plot
 
 # Peaklabel PARAMETERS
-peak_labels = True     # toggle visibility of peak labels from CSV files
-expand = (1.6, 1.5)     # buffer size around the text to expand
-iter_lim = 42           # how many iterations should be used for the label-placement
-peak_seed = 42          # random seed - change if you want a different peak_label placement
+peak_labels = True      # toggle visibility of peak labels from CSV files
 label_fontsize = 4      # size of the text
+
+show_ellipse = False    # show ellipses around peaks
+peak_ellipse_x = 0.06   # ellipse width in x ppm
+peak_ellipse_y = 0.6    # ellipse height in y ppm
+random_seed = 42        # random start orientation
+cycles = 10             # number of peak and text avoiding cycles
+iterations = 10         # iterations for each cycle
 
 
 # %% SPECTRA TYPE PARAMETERS
@@ -171,6 +175,7 @@ dic_all, data_all = pf.read_data(files)
 # %% INFO PARAMETERS
 # -- Info parameters which will be transferred to the plot functions --
 p = {
+    "spectra_type": spectra_type,
     "dic_all": dic_all,
     "data_all": data_all,
     "files": files,
@@ -210,13 +215,16 @@ p = {
     "peak_labels": peak_labels,
     "csv_files": csv_files.tolist(),
     "label_fontsize": label_fontsize,
-    "expand": expand,
-    "iter_lim": iter_lim,
-    "peak_seed": peak_seed,
     "csv_dir": csv_dir,
     "out_single": out_single,
     "out_grid": out_grid,
     "out_overlay": out_overlay,
+    "peak_ellipse_x": peak_ellipse_x,
+    "peak_ellipse_y": peak_ellipse_y,
+    "show_ellipse": show_ellipse,
+    "random_seed": random_seed,
+    "cycles": cycles,
+    "iterations": iterations,
 }
 
 
