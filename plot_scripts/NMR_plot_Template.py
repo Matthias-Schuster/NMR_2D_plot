@@ -73,8 +73,9 @@ grid_y = 0.06           # distance of the y label to the axis in the grid_plot
 # Peaklabel PARAMETERS
 peak_labels = True      # toggle visibility of peak labels from CSV files
 label_fontsize = 4      # size of the text
+connector_width = 0.5   # linewith of the connector
 
-show_ellipse = False    # show ellipses around peaks
+show_ellipse = False    # show ellipses around peaks that will be avoided by the text
 peak_ellipse_x = 0.06   # ellipse width in x ppm
 peak_ellipse_y = 0.6    # ellipse height in y ppm
 random_seed = 42        # random start orientation
@@ -115,6 +116,8 @@ elif spectra_type == "ZOOM":
     xticks, xminorticks = 0.2, 0.05
     yticks, yminorticks = 2, 0.5
     line_width = 0.6
+    label_fontsize = 12
+    connector_width = 1
 
 elif spectra_type == "SIZE":
     xlim, ylim = (8.9, 6.6), (130, 110)
@@ -227,6 +230,7 @@ p = {
     "random_seed": random_seed,
     "cycles": cycles,
     "iterations": iterations,
+    "connector_width": connector_width
 }
 
 

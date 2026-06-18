@@ -235,11 +235,11 @@ def add_labels_from_csv(ax, csv_file, p):
         x = df_labels["position_1"].to_numpy()
         y = df_labels["position_2"].to_numpy()
 
-        for _, row in df_labels.iterrows():
+        for row in df_labels.itertuples():
             t = ax.text(
-                row["position_1"],
-                row["position_2"],
-                str(row["Residue"]),
+                row.position_1,
+                row.position_2,
+                str(row.Residue),
                 fontsize=p.get("label_fontsize", 6),
                 color="black",
                 ha="center",
@@ -545,7 +545,14 @@ def adjust_all_labels(ax, texts, x, y, p):
 
     # 5. Draw final connector lines
     arrows = draw_final_connectors(
-        ax=ax, x=x, y=y, texts=texts, min_distance_px=4, lw=0.5, alpha=0.5, color="black"
+        ax=ax,
+        x=x,
+        y=y,
+        texts=texts,
+        min_distance_px=4,
+        lw=p.get("connector_width", 0.5),
+        alpha=0.5,
+        color="black",
     )
 
     hide_texts_outside_axes(ax, texts, arrows)
