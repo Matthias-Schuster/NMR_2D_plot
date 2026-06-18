@@ -1,3 +1,4 @@
+import warnings
 import nmrglue as ng
 import matplotlib.pyplot as plt
 import numpy as np
@@ -6,6 +7,8 @@ from pathlib import Path
 import matplotlib.ticker as mticker
 from matplotlib.collections import LineCollection
 from matplotlib.lines import Line2D
+from matplotlib.patches import Ellipse
+from matplotlib.transforms import Bbox
 from adjustText import adjust_text
 import os
 import contextlib
@@ -61,7 +64,9 @@ def save_and_clear(fig, folder, name, p):
     if p.get("save_svg", False):
         fig.savefig(save_base.with_suffix(".svg"), transparent=True, bbox_inches="tight")
 
-    plt.show()
+    if plt.get_backend().lower() != "agg":
+        plt.show()
+
     plt.close(fig)
 
 
@@ -180,32 +185,7 @@ def draw_contours(ax, dic, data, p, contour_start, color):
     return clp
 
 
-def hide_texts_outside_axes(ax, texts, arrows=None):
-    """
-    Hide text labels whose final adjusted bounding box lies outside the axes.
-    Also hides corresponding arrows if provided.
-    """
-    fig = ax.figure
-    fig.canvas.draw()
-
-    renderer = fig.canvas.get_renderer()
-    ax_bbox = ax.get_window_extent(renderer)
-
-    for i, text in enumerate(texts):
-        text_bbox = text.get_window_extent(renderer)
-
-        inside = (
-            text_bbox.x0 >= ax_bbox.x0
-            and text_bbox.x1 <= ax_bbox.x1
-            and text_bbox.y0 >= ax_bbox.y0
-            and text_bbox.y1 <= ax_bbox.y1
-        )
-
-        if not inside:
-            text.set_visible(False)
-
-            if arrows is not None and i < len(arrows):
-                arrows[i].set_visible(False)
+# --- LABEL FUNCTIONS ---
 
 
 def add_labels_from_csv(ax, csv_file, p):
@@ -273,42 +253,302 @@ def add_labels_from_csv(ax, csv_file, p):
         return [], [], []
 
 
-def adjust_all_labels(ax, texts, x, y, p):
-    """Runs adjustText on a pooled collection of text objects from all overlaid spectra."""
-    if not texts:
+# --- LABEL ADJUSTMENT HELPER FUNCTIONS ---
+
+
+def hide_texts_outside_axes(ax, texts, arrows=None):
+    """Hide text labels and arrows whose bounding box lies outside the axes."""
+    fig = ax.figure
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    ax_bbox = ax.get_window_extent(renderer)
+
+    for i, text in enumerate(texts):
+        text_bbox = text.get_window_extent(renderer)
+        inside = (
+            text_bbox.x0 >= ax_bbox.x0
+            and text_bbox.x1 <= ax_bbox.x1
+            and text_bbox.y0 >= ax_bbox.y0
+            and text_bbox.y1 <= ax_bbox.y1
+        )
+        if not inside:
+            text.set_visible(False)
+            if arrows is not None and i < len(arrows):
+                arrows[i].set_visible(False)
+
+
+def _ellipse_bboxes_from_data(ax, x, y, width, height, expand=1.0):
+    """Compute display-space bounding boxes for ellipses directly from data coords."""
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+
+    half_w, half_h = width / 2.0, height / 2.0
+    corners_1 = np.column_stack([x - half_w, y - half_h])
+    corners_2 = np.column_stack([x + half_w, y + half_h])
+
+    disp_1 = ax.transData.transform(corners_1)
+    disp_2 = ax.transData.transform(corners_2)
+
+    x0 = np.minimum(disp_1[:, 0], disp_2[:, 0])
+    x1 = np.maximum(disp_1[:, 0], disp_2[:, 0])
+    y0 = np.minimum(disp_1[:, 1], disp_2[:, 1])
+    y1 = np.maximum(disp_1[:, 1], disp_2[:, 1])
+
+    if expand != 1.0:
+        cx, cy = 0.5 * (x0 + x1), 0.5 * (y0 + y1)
+        hw, hh = 0.5 * (x1 - x0) * expand, 0.5 * (y1 - y0) * expand
+        x0, x1, y0, y1 = cx - hw, cx + hw, cy - hh, cy + hh
+
+    return [Bbox.from_extents(a, b, c, d) for a, b, c, d in zip(x0, y0, x1, y1)]
+
+
+def _bbox_list_to_arrays(bboxes):
+    """Convert list of Bbox objects to numpy arrays for fast vectorized checks."""
+    n = len(bboxes)
+    x0, y0, x1, y1 = np.empty(n), np.empty(n), np.empty(n), np.empty(n)
+    for i, bbox in enumerate(bboxes):
+        x0[i], y0[i], x1[i], y1[i] = bbox.x0, bbox.y0, bbox.x1, bbox.y1
+    return x0, y0, x1, y1
+
+
+def push_texts_out_of_obstacle_bboxes_fast(
+    fig, ax, texts, obstacle_bboxes, padding_px=5, max_iter=80
+):
+    """Vectorized hard constraint step. Pushes labels out of peak ellipses."""
+    if not texts or not obstacle_bboxes:
         return
 
-    ax.figure.canvas.draw()
-    np.random.seed(p.get("peak_seed", 42))
+    obs_x0, obs_y0, obs_x1, obs_y1 = _bbox_list_to_arrays(obstacle_bboxes)
 
-    with open(os.devnull, "w") as fnull:
-        with contextlib.redirect_stdout(fnull):
-            adjusted_texts, arrows = adjust_text(
+    for _ in range(max_iter):
+        fig.canvas.draw()
+        renderer = fig.canvas.get_renderer()
+        moved_any = False
+
+        for text in texts:
+            if not text.get_visible():
+                continue
+
+            tb = text.get_window_extent(renderer)
+            tx0, tx1 = min(tb.x0, tb.x1), max(tb.x0, tb.x1)
+            ty0, ty1 = min(tb.y0, tb.y1), max(tb.y0, tb.y1)
+
+            # Vectorized overlap check against all obstacles simultaneously
+            overlaps = (tx0 < obs_x1) & (tx1 > obs_x0) & (ty0 < obs_y1) & (ty1 > obs_y0)
+
+            if not np.any(overlaps):
+                continue
+
+            # Calculate pixel moves that would separate the text from each overlapping obstacle side
+            ox0, oy0, ox1, oy1 = (
+                obs_x0[overlaps],
+                obs_y0[overlaps],
+                obs_x1[overlaps],
+                obs_y1[overlaps],
+            )
+
+            move_left = ox0 - tx1 - padding_px
+            move_right = ox1 - tx0 + padding_px
+            move_down = oy0 - ty1 - padding_px
+            move_up = oy1 - ty0 + padding_px
+
+            candidate_moves = []
+            for dx in move_left:
+                candidate_moves.append((dx, 0.0))
+            for dx in move_right:
+                candidate_moves.append((dx, 0.0))
+            for dy in move_down:
+                candidate_moves.append((0.0, dy))
+            for dy in move_up:
+                candidate_moves.append((0.0, dy))
+
+            # Pick the shortest escape route
+            dx_px, dy_px = min(candidate_moves, key=lambda move: abs(move[0]) + abs(move[1]))
+
+            old_x, old_y = text.get_position()
+            old_display = ax.transData.transform((old_x, old_y))
+            new_display = old_display + np.array([dx_px, dy_px])
+            new_data = ax.transData.inverted().transform(new_display)
+
+            text.set_position(new_data)
+            moved_any = True
+
+        if not moved_any:
+            break
+
+
+def draw_final_connectors(ax, x, y, texts, min_distance_px=2, lw=0.5, alpha=0.5, color="black"):
+    """Draw connector lines once, after final label positions are known."""
+    arrows = []
+    for px, py, text in zip(x, y, texts):
+        if not text.get_visible():
+            arrows.append(None)
+            continue
+
+        tx, ty = text.get_position()
+
+        # Calculate pixel distance to decide if we need a line at all
+        anchor_disp = ax.transData.transform((px, py))
+        text_disp = ax.transData.transform((tx, ty))
+        distance_px = np.hypot(text_disp[0] - anchor_disp[0], text_disp[1] - anchor_disp[1])
+
+        if distance_px <= min_distance_px:
+            arrows.append(None)
+            continue
+
+        arrow = ax.annotate(
+            "",
+            xy=(px, py),
+            xytext=(tx, ty),
+            arrowprops=dict(
+                arrowstyle="-",
+                color=color,
+                lw=lw,
+                alpha=alpha,
+                patchA=text,
+                shrinkA=0.25,
+                shrinkB=0,
+            ),
+            annotation_clip=False,
+            zorder=4,
+        )
+        arrows.append(arrow)
+
+    return arrows
+
+
+# --- MAIN LABEL ADJUSTMENT FUNCTION ---
+
+
+def adjust_all_labels(ax, texts, x, y, p):
+    """Adjust peak labels while avoiding peak ellipses using iterative cooling."""
+    if not texts:
+        return [], []
+
+    fig = ax.figure
+    fig.canvas.draw()
+
+    n = min(len(texts), len(x), len(y))
+    if n == 0:
+        return [], []
+
+    texts = texts[:n]
+    x = np.asarray(x[:n], dtype=float)
+    y = np.asarray(y[:n], dtype=float)
+
+    # User Settings
+    ellipse_width = p.get("peak_ellipse_x", 0.06)
+    ellipse_height = p.get("peak_ellipse_y", 0.6)
+    show_ellipse = p.get("show_ellipse", False)
+    random_seed = p.get("random_seed", 42)
+    jitter = p.get("jitter", 0.3)
+
+    # Internal parameters for placement
+    bbox_expand = 1.05
+    initial_offset_scale = 1.05
+    expand = (1.25, 1.25)
+    obstacle_padding_px = 1
+
+    # Iteration Control ("Cooling" parameters)
+    cycles = p.get("cycles", 10)            # Number of push/relax cycles
+    base_max_move = 30.0                    # Starting movement limit in pixels
+    base_pull_force = 0.1                   # Starting pull back to the peak
+    iterations = p.get("iterations", 10)    # Number of max iterations
+
+    # 1. Build obstacle boxes
+    obstacle_bboxes = _ellipse_bboxes_from_data(
+        ax=ax, x=x, y=y, width=ellipse_width, height=ellipse_height, expand=bbox_expand
+    )
+
+    if show_ellipse:
+        for px, py in zip(x, y):
+            ellipse = Ellipse(
+                (px, py), width=ellipse_width, height=ellipse_height,
+                fill=True, facecolor="black", edgecolor="black", alpha=0.25, zorder=1,
+            )
+            ax.add_patch(ellipse)
+
+    # 2. Initial deterministic label placement (Spiral algorithm)
+    golden_angle = np.pi * (3.0 - np.sqrt(5.0))
+    angles = np.arange(n, dtype=float) * golden_angle
+
+    # Calculate the base deterministic offsets
+    base_dx = np.cos(angles) * ellipse_width * initial_offset_scale
+    base_dy = np.sin(angles) * ellipse_height * initial_offset_scale
+
+    # Generate reproducible random noise based on your seed
+    rng = np.random.default_rng(random_seed)
+
+    # Create random shifts scaled by the ellipse size and your chosen jitter strength
+    jitter_x = rng.uniform(-jitter, jitter, n) * ellipse_width
+    jitter_y = rng.uniform(-jitter, jitter, n) * ellipse_height
+
+    # Combine the spiral with the random jitter
+    dx = base_dx + jitter_x
+    dy = base_dy + jitter_y
+
+    for i, text in enumerate(texts):
+        text.set_position((x[i] + dx[i], y[i] + dy[i]))
+
+    fig.canvas.draw()
+
+    # 3. Iterative Solver Loop
+    for cycle in range(cycles):
+
+        # A. Hard constraint: Push entirely out of peaks
+        push_texts_out_of_obstacle_bboxes_fast(
+            fig=fig,
+            ax=ax,
+            texts=texts,
+            obstacle_bboxes=obstacle_bboxes,
+            padding_px=obstacle_padding_px,
+            max_iter=iterations,
+        )
+
+        # B. Soft constraint: Resolve text overlaps
+        # Decrease movement allowance and pull force as cycles progress
+        current_max_move = base_max_move / (cycle + 1)
+        current_pull = base_pull_force / (cycle + 1) if cycle < (cycles - 1) else 0.0
+
+        with open(os.devnull, "w") as fnull, contextlib.redirect_stdout(
+            fnull
+        ), warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=UserWarning)
+            adjust_text(
                 texts,
-                x=x,
-                y=y,
+                target_x=x,
+                target_y=y,
+                avoid_self=False,
                 ax=ax,
                 prevent_crossings=True,
                 ensure_inside_axes=True,
                 expand_axes=False,
-                expand=p.get("expand", (1.75, 1.5)),
-                force_text=(0.2, 0.1),
-                force_static=(0.2, 0.1),
-                force_pull=(0.01, 0.01),
-                iter_lim=p.get("iter_lim", 100),
-                min_arrow_len=0,
-                arrowprops=dict(
-                    arrowstyle="-",
-                    color="black",
-                    lw=0.5,
-                    alpha=0.5,
-                    shrinkA=0.5,
-                    shrinkB=0,
-                ),
+                expand=expand,
+                force_text=(0.6, 0.6),
+                force_static=(0.0, 0.0),
+                force_pull=(current_pull, current_pull),
+                max_move=(current_max_move, current_max_move),
+                iter_lim=iterations,
             )
 
-    # Hide labels that ended up outside the axis after adjust_text
-    hide_texts_outside_axes(ax, adjusted_texts, arrows)
+    # 4. One final hard push to guarantee no peak is covered after the final adjust_text
+    push_texts_out_of_obstacle_bboxes_fast(
+        fig=fig,
+        ax=ax,
+        texts=texts,
+        obstacle_bboxes=obstacle_bboxes,
+        padding_px=obstacle_padding_px,
+        max_iter=iterations,
+    )
+
+    # 5. Draw final connector lines
+    arrows = draw_final_connectors(
+        ax=ax, x=x, y=y, texts=texts, min_distance_px=4, lw=0.5, alpha=0.5, color="black"
+    )
+
+    hide_texts_outside_axes(ax, texts, arrows)
+
+    return texts, arrows
 
 
 # --- MAIN PLOTTING FUNCTIONS ---
@@ -449,9 +689,7 @@ def grid_plot_over(p, over, row=2, col=2, reverse=False):
 
             if not reverse:
                 # Draw Main spectrum (Bottom)
-                draw_contours(
-                    ax, dic_all[idx], data_all[idx], p, p["cont"][idx], p["colors"][idx]
-                )
+                draw_contours(ax, dic_all[idx], data_all[idx], p, p["cont"][idx], p["colors"][idx])
                 # Draw Overlay spectrum (Top)
                 draw_contours(
                     ax, dic_all[over], data_all[over], p, p["cont"][over], p["colors"][over]
@@ -462,9 +700,7 @@ def grid_plot_over(p, over, row=2, col=2, reverse=False):
                     ax, dic_all[over], data_all[over], p, p["cont"][over], p["colors"][over]
                 )
                 # Draw Main spectrum (Top)
-                draw_contours(
-                    ax, dic_all[idx], data_all[idx], p, p["cont"][idx], p["colors"][idx]
-                )
+                draw_contours(ax, dic_all[idx], data_all[idx], p, p["cont"][idx], p["colors"][idx])
 
             # 1. Labels for the main spectrum (idx)
             t1, x1, y1 = add_labels_from_csv(ax, p["csv_files"][idx], p)
