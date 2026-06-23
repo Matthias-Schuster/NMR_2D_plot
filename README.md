@@ -25,6 +25,10 @@ conda env create -f environment.yml
 
 # Activate the environment
 conda activate NMR_2D_plot
+
+
+# Alternatively you can update your environment
+conda env update -n your_env_name -f environment.yml
 ```
 
 ## 📁 Project Architecture
