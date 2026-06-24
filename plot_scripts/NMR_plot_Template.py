@@ -2,7 +2,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from nmr_setup import setup_nmr_project
 
-# Template for Plot_func V1.1
+# Template for Plot_func V1.1.1
 
 # ==========================================
 # 1. AUTO-ROUTING & SYSTEM SETUP
@@ -78,7 +78,8 @@ connector_width = 0.5   # linewith of the connector
 show_ellipse = False    # show ellipses around peaks that will be avoided by the text
 peak_ellipse_x = 0.06   # ellipse width in x ppm
 peak_ellipse_y = 0.6    # ellipse height in y ppm
-random_seed = 42        # random start orientation
+starting_angle = 42     # starting angle in degrees
+random_seed = 42        # random jitter for initial placement
 cycles = 10             # number of peak and text avoiding cycles
 iterations = 10         # iterations for each cycle
 
@@ -230,7 +231,8 @@ p = {
     "random_seed": random_seed,
     "cycles": cycles,
     "iterations": iterations,
-    "connector_width": connector_width
+    "connector_width": connector_width,
+    "starting_angle": starting_angle,
 }
 
 

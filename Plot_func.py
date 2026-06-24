@@ -13,7 +13,7 @@ from adjustText import adjust_text
 import os
 import contextlib
 
-# Plot_func V1.1
+# Plot_func V1.1.1
 
 # Global dictionary to store pre-calculated contour vertices
 _CONTOUR_CACHE = {}
@@ -465,14 +465,26 @@ def adjust_all_labels(ax, texts, x, y, p):
     if show_ellipse:
         for px, py in zip(x, y):
             ellipse = Ellipse(
-                (px, py), width=ellipse_width, height=ellipse_height,
-                fill=True, facecolor="black", edgecolor="black", alpha=0.25, zorder=1,
+                (px, py),
+                width=ellipse_width,
+                height=ellipse_height,
+                fill=True,
+                facecolor="black",
+                edgecolor="black",
+                alpha=0.25,
+                zorder=1,
             )
             ax.add_patch(ellipse)
 
     # 2. Initial deterministic label placement (Spiral algorithm)
     golden_angle = np.pi * (3.0 - np.sqrt(5.0))
-    angles = np.arange(n, dtype=float) * golden_angle
+
+    # Fetch the starting angle from parameters and convert to radians
+    user_shift_deg = p.get("starting_angle", 0.0)
+    starting_phase = np.radians(user_shift_deg)
+
+    # Apply the user's deterministic shift to the spiral
+    angles = (np.arange(n, dtype=float) * golden_angle) + starting_phase
 
     # Calculate the base deterministic offsets
     base_dx = np.cos(angles) * ellipse_width * initial_offset_scale
@@ -485,7 +497,7 @@ def adjust_all_labels(ax, texts, x, y, p):
     jitter_x = rng.uniform(-jitter, jitter, n) * ellipse_width
     jitter_y = rng.uniform(-jitter, jitter, n) * ellipse_height
 
-    # Combine the spiral with the random jitter
+    # Combine the rotated spiral with the random jitter
     dx = base_dx + jitter_x
     dy = base_dy + jitter_y
 
