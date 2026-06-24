@@ -1,8 +1,8 @@
 from pathlib import Path
 import matplotlib.pyplot as plt
-from nmr_setup import setup_nmr_project
+from nmr_setup import setup_nmr_project, build_plot_dict
 
-# Template for Plot_func V1.1.1
+# Template for Plot_func V1.2
 
 # ==========================================
 # 1. AUTO-ROUTING & SYSTEM SETUP
@@ -179,62 +179,7 @@ print("Loading NMR data into memory...")
 dic_all, data_all = pf.read_data(files)
 
 # %% INFO PARAMETERS
-# -- Info parameters which will be transferred to the plot functions --
-p = {
-    "spectra_type": spectra_type,
-    "dic_all": dic_all,
-    "data_all": data_all,
-    "files": files,
-    "file_names": file_names,
-    "cont": cont,
-    "colors": colors,
-    "dpi": dpi,
-    "xlim": xlim,
-    "ylim": ylim,
-    "xsize": xsize,
-    "ysize": ysize,
-    "lines": lines,
-    "factor": factor,
-    "line_width": line_width,
-    "xticks": xticks,
-    "xminorticks": xminorticks,
-    "yticks": yticks,
-    "yminorticks": yminorticks,
-    "labelpad_x": labelpad_x,
-    "labelpad_y": labelpad_y,
-    "title_y": title_y,
-    "x_label": x_label,
-    "y_label": y_label,
-    "y_label_grid": y_label_grid,
-    "grid_x": grid_x,
-    "grid_y": grid_y,
-    "titles": titles,
-    "labels": axis_labels,
-    "alpha": alpha,
-    "negative": negative,
-    "neg_color": neg_color,
-    "save_svg": save_svg,
-    "save_png": save_png,
-    "first_x": first_x,
-    "first_y": first_y,
-    "legend": legend,
-    "peak_labels": peak_labels,
-    "csv_files": csv_files.tolist(),
-    "label_fontsize": label_fontsize,
-    "csv_dir": csv_dir,
-    "out_single": out_single,
-    "out_grid": out_grid,
-    "out_overlay": out_overlay,
-    "peak_ellipse_x": peak_ellipse_x,
-    "peak_ellipse_y": peak_ellipse_y,
-    "show_ellipse": show_ellipse,
-    "random_seed": random_seed,
-    "cycles": cycles,
-    "iterations": iterations,
-    "connector_width": connector_width,
-    "starting_angle": starting_angle,
-}
-
+p = build_plot_dict(**locals())
 
 # %% FILES TO OVERLAY
 # this gives you the number of the spectrum for the overlay plot

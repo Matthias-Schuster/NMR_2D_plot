@@ -13,7 +13,7 @@ from adjustText import adjust_text
 import os
 import contextlib
 
-# Plot_func V1.1.1
+# Plot_func V1.2
 
 # Global dictionary to store pre-calculated contour vertices
 _CONTOUR_CACHE = {}
