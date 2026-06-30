@@ -1,6 +1,7 @@
 from pathlib import Path
 import matplotlib.pyplot as plt
 from nmr_setup import setup_nmr_project, build_plot_dict
+import Plot_func as pf
 
 # Template for Plot_func V1.2
 
@@ -8,7 +9,6 @@ from nmr_setup import setup_nmr_project, build_plot_dict
 # 1. AUTO-ROUTING & SYSTEM SETUP
 # ==========================================
 PROJECT_NAME, paths = setup_nmr_project(__file__)
-import Plot_func as pf
 
 # ==========================================
 # 2. I/O HUB
