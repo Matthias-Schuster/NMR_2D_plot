@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from nmr_setup import setup_nmr_project, build_plot_dict
 import Plot_func as pf
 
-# Template for Plot_func V1.2
+# Template for Plot_func V1.3
 
 # ==========================================
 # 1. AUTO-ROUTING & SYSTEM SETUP
@@ -24,23 +24,18 @@ out_grid = paths["out_grid"]
 
 base_dir = Path("/User/Documents/NMR_Spectra")
 
-# Data Format (folder, name, contour, color, label.csv(optional))
+# Data Format (folder, name, contour, color (second color for negative peaks), label.csv(optional))
 data = [
-    ("250905_Protein_1/700",    "Protein 1",    7e7,    "black",        "Protein_1_pos.csv"),
-    ("250905_Protein_2/700",    "Protein 2",    5e8,    "#000000"),
-    ("250905_Protein_3/700",    "Protein 3",    6e8,    "tab:blue"),
-    ("250905_Protein_4/700",    "Protein 4",    12e8,   [0.839, 0.153, 0.157]),
+    ("250905_Protein_1/700",    "Protein 1",        7e7,    "black",          "Protein_1_pos.csv"),
+    ("250905_Protein_2/700",    "Protein 2",        5e8,    "#000000"),
+    ("250905_Protein_3/700",    "Protein 3",        6e8,    ["tab:blue", "tab:orange"]),
+    ("250905_Protein_4/700",    "Protein 4",       12e8,    [0.839, 0.153, 0.157]),
+    ("250905_Protein_4/701",    "Protein 4 HNCO",   6e8,    ["tab:blue", "tab:orange"]),
+    ("250905_Protein_4/702",    "Protein 4 HNcaCO", 6e8,    ["tab:green", "tab:red"]),
 ]
 
 files, file_names, cont, colors, csv_files = pf.parse_plot_data(data, base_dir)
 # colors = pf.colormap(files, maps='viridis')  # use a colormap
-
-# %% SELECT YOUR SPECTRA TYPE
-
-# spectra types 15N, 13C, CON, ZOOM, SIZE
-
-spectra_type = "15N"
-
 
 # %% SETUP PARAMETERS
 
@@ -58,11 +53,8 @@ labelpad_x = -8         # distance of the x label to the axis in individual plot
 labelpad_y = 9          # distance of the y label to the axis in individual plots
 
 alpha = 0.7             # transparency for overlay
-negative = False        # negative conture levels
-neg_color = "magenta"   # negative conture level color
-
-first_x = False         # hides the first x-tick label
-first_y = False         # hides the first y-tick label
+first_x = True          # hides the first x-tick label
+first_y = True          # hides the first y-tick label
 legend = True           # visibility of the legend in overlay plots
 
 # GRIDPLOT PARAMETERS
@@ -71,11 +63,11 @@ grid_x = 0.05           # distance of the x label to the axis in the grid_plot
 grid_y = 0.06           # distance of the y label to the axis in the grid_plot
 
 # Peaklabel PARAMETERS
-peak_labels = True      # toggle visibility of peak labels from CSV files
+peak_labels = False     # toggle visibility of peak labels from CSV files
 label_fontsize = 4      # size of the text
 connector_width = 0.5   # linewith of the connector
 
-show_ellipse = False    # show ellipses around peaks that will be avoided by the text
+show_ellipse = False     # show ellipses around peaks that will be avoided by the text
 peak_ellipse_x = 0.06   # ellipse width in x ppm
 peak_ellipse_y = 0.6    # ellipse height in y ppm
 starting_angle = 42     # starting angle in degrees
@@ -86,55 +78,78 @@ iterations = 10         # iterations for each cycle
 
 # %% SPECTRA TYPE PARAMETERS
 
-if spectra_type == "15N":
-    xlim, ylim = (11.2, 6.2), (134, 104)
-    x_label, y_label = "$^1$H [ppm]", "$^{15}$N\n[ppm]"
-    y_label_grid = "$^{15}$N [ppm]"
-    xticks, xminorticks = 1, 0.5
-    yticks, yminorticks = 5, 1
-    line_width = 0.3
+SPECTRA_STYLES = {
+    "15N": {
+        "xlim": (11.2, 6.2),
+        "ylim": (134, 104),
+        "x_label": "$^1$H [ppm]",
+        "y_label": "$^{15}$N\n[ppm]",
+        "y_label_grid": "$^{15}$N [ppm]",
+        "xticks": 1,
+        "xminorticks": 0.5,
+        "yticks": 5,
+        "yminorticks": 1,
+        "line_width": 0.3,
+    },
 
-elif spectra_type == "13C":
-    xlim, ylim = (1.51, -0.58), (28, 18.2)
-    x_label, y_label = "$^1$H [ppm]", "$^{13}$C\n[ppm]"
-    y_label_grid = "$^{13}$C [ppm]"
-    xticks, xminorticks = 0.5, 0.1
-    yticks, yminorticks = 5, 1
-    line_width = 0.6
+    "13C": {
+        "xlim": (1.51, -0.58),
+        "ylim": (28, 18.2),
+        "x_label": "$^1$H [ppm]",
+        "y_label": "$^{13}$C\n[ppm]",
+        "y_label_grid": "$^{13}$C [ppm]",
+        "xticks": 0.5,
+        "xminorticks": 0.1,
+        "yticks": 5,
+        "yminorticks": 1,
+        "line_width": 0.6,
+    },
 
-elif spectra_type == "CON":
-    xlim, ylim = (178, 168), (140, 108)
-    x_label, y_label = "$^{13}$C [ppm]", "$^{15}$N\n[ppm]"
-    y_label_grid = "$^{15}$N [ppm]"
-    xticks, xminorticks = 2, 0.5
-    yticks, yminorticks = 5, 1
-    line_width = 0.3
+    "CON": {
+        "xlim": (178, 168),
+        "ylim": (140, 108),
+        "x_label": "$^{13}$C [ppm]",
+        "y_label": "$^{15}$N\n[ppm]",
+        "y_label_grid": "$^{15}$N [ppm]",
+        "xticks": 2,
+        "xminorticks": 0.5,
+        "yticks": 5,
+        "yminorticks": 1,
+        "line_width": 0.3,
+    },
 
-elif spectra_type == "ZOOM":
-    xlim, ylim = (8.8, 8), (118, 114)
-    x_label, y_label = "$^1$H [ppm]", "$^{15}$N\n[ppm]"
-    y_label_grid = "$^{15}$N [ppm]"
-    xticks, xminorticks = 0.2, 0.05
-    yticks, yminorticks = 2, 0.5
-    line_width = 0.6
-    label_fontsize = 12
-    connector_width = 1
+    "ZOOM": {
+        "xlim": (8.8, 8),
+        "ylim": (118, 114),
+        "x_label": "$^1$H [ppm]",
+        "y_label": "$^{15}$N\n[ppm]",
+        "y_label_grid": "$^{15}$N [ppm]",
+        "xticks": 0.2,
+        "xminorticks": 0.05,
+        "yticks": 2,
+        "yminorticks": 0.5,
+        "line_width": 0.6,
+    },
 
-elif spectra_type == "SIZE":
-    xlim, ylim = (8.9, 6.6), (130, 110)
-    x_label, y_label = "$^1$H [ppm]", "$^{15}$N\n[ppm]"
-    y_label_grid = "$^{15}$N [ppm]"
-    xticks, xminorticks = 0.5, 0.25
-    yticks, yminorticks = 5, 1
-    line_width = 0.3
-    xsize = 4
-    ysize = 7
-
-else:
-    raise ValueError(
-        f"Invalid spectra_type: '{spectra_type}'. Must be one of the available types!"
-    )
-
+    "HNCO": {
+        "xlim": (8.0, 7.7),
+        "ylim": (135.9, 125.8),
+        "x_label": "$^1$H [ppm]",
+        "y_label": "$^{13}$C\n[ppm]",
+        "y_label_grid": "$^{13}$C [ppm]",
+        "xticks": 0.1,
+        "xminorticks": 0.025,
+        "yticks": 2,
+        "yminorticks": 1,
+        "line_width": 1.5,
+        "xsize": 2.5,
+        "ysize": 5.0,
+        "grid_x": 0.03,
+        "grid_y": 0.045,
+        "title_y": 0.83,
+        "first_x": False,
+    },
+}
 
 # %% ADDITIONAL SETUP PARAMETERS
 
@@ -180,16 +195,16 @@ dic_all, data_all = pf.read_data(files)
 
 # %% INFO PARAMETERS
 p = build_plot_dict(**locals())
+p["SPECTRA_STYLES"] = SPECTRA_STYLES
+pf.set_style(p, "15N")
 
 # %% FILES TO OVERLAY
 # this gives you the number of the spectrum for the overlay plot
+pf.spectrum_menu(p)
 
-print("\n----- Spectrum Menu -----")
-for i, name in enumerate(file_names):
-    print(f" [{i}] -> {name}")
-print("-------------------------\n")
-
-# %% PLOT ALL SPECTRA
+# %% ----------------------------------
+# PLOT SPECTRA
+# -------------------------------------
 if True:
     pf.plot_everything(p)
 
@@ -198,6 +213,12 @@ if True:
 # -- you can plot all combinations, the last number will be on top --
 
 if False:
+    pf.overlay(p, [1], name="prot1")
+    pf.overlay(p, [1, 2], name="over1")
+    pf.overlay(p, [2, 1], name="over2")
+
+# -- you can change the style for different plots --
+    pf.set_style(p, "ZOOM")
     pf.overlay(p, [1], name="prot1")
     pf.overlay(p, [1, 2], name="over1")
     pf.overlay(p, [2, 1], name="over2")
@@ -222,4 +243,41 @@ if False:
             [2, 1],
             [1, 2, 3],
         ],
+    )
+
+# %% Extract 2D slice from a 3D spectrum
+
+if False:
+    pf.set_style(p, "HNCO")
+
+    pf.plot_strip(p, 4, z_slice=120.75, x_slice=8.23, name="HNCO", strip_width=0.2)
+    pf.plot_strip(p, [5, 4], z_slice=122.2, x_slice=7.85, name="HNCO and HNcaCO", strip_width=0.2)
+
+    my_slices = [
+        {"z_slice": 120.75, "x_slice": 8.23, "title": "Asn12"},
+        {"z_slice": 121.38, "x_slice": 8.08, "title": "Glu13"},
+        {"z_slice": 122.47, "x_slice": 7.85, "title": "Val14"},
+    ]
+
+    pf.strip_grid_plot(
+        p,
+        4,
+        slices=my_slices,
+        slice_axis=1,
+        row=1,
+        col=3,
+        strip_width=0.2,
+        name="HNCO",
+    )
+
+    pf.strip_grid_plot(
+        p,
+        [4, 5],
+        slices=my_slices,
+        slice_axis=1,
+        row=1,
+        col=3,
+        strip_width=0.2,
+        name="Sequential_Walk",
+        reverse=False,
     )

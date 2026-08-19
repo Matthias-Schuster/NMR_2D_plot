@@ -67,6 +67,7 @@ data = [
     # (Folder, Name, Contour Start, Color, CSV File)
     ('250905_Protein_1/700', "Protein 1", 7e7, "black", "Protein1_labels.csv"),
     ('250905_Protein_2/700', "Protein 2", 5e8, "tab:blue"), # CSV is optional!
+    ('250905_Protein_3/700', "Protein 3", 6e8, ["tab:orange", "tab:cyan")] # a second color activates negative contours!
 ]
 ```
 
@@ -74,8 +75,9 @@ data = [
 Select the pre-configured axis limits and labels for your experiment:
 
 ```Python
-spectra_type = "15N"  # Options: "15N", "13C", "CON", "ZOOM", "SIZE"
+pf.set_style(p, "15N")  # Options: "15N", "13C", "CON", "ZOOM", "SIZE"
 ```
+You can modify the Styles of the SPECTRA_STYLES dictionary!
 
 ### 4. Generate Plots
 At the bottom of your script, toggle the boolean flags (if True:) to generate the plot types you need. The script will automatically save them to your project's results folder.
@@ -85,8 +87,47 @@ At the bottom of your script, toggle the boolean flags (if True:) to generate th
 * Overlaid Grids: Select a reference spectrum to overlay across all panels in your grid.
 * Custom Grid Overlays: Define specific groupings of spectra for each individual grid panel using grid_plot_over_xp.
 
+For example:
+
+```Python
+pf.plot_everything(p)
+
+pf.overlay(p, [1], name="prot1")
+pf.overlay(p, [1, 2], name="over1")
+pf.overlay(p, [2, 1], name="over2")
+
+pf.grid_plot(p, row=2, col=2)
+```
+
+### 5. Generate Slices from 3D spectra
+
+* plot_strip: Plots a single slice of a 3D spectrum (or overlays of 3D spectra).
+* strip_grid_plot: Plots multiple slices of a 3D spectrum (or overlays of 3D spectra).
+
+Slices can be defined like this
+
+```Python
+my_slices = [
+    {"z_slice": 120.75, "x_slice": 8.23, "title": "Asn12"},
+    {"z_slice": 121.38, "x_slice": 8.08, "title": "Glu13"},
+    {"z_slice": 122.47, "x_slice": 7.85, "title": "Val14"},
+]
+
+pf.strip_grid_plot(
+    p,
+    [4, 5],
+    slices=my_slices,
+    slice_axis=1,
+    row=1,
+    col=3,
+    strip_width=0.2,
+    name="Sequential_Walk",
+    reverse=False,
+)
+```
+
 ## 🏷️ Peak Labels via CSV (Optional)
-You can automatically annotate your NMR spectra with peak labels by providing a CSV file for each spectrum.
+You can automatically annotate your NMR spectra with peak labels by providing a CSV file for each spectrum (only for 2D spectra).
 
 ### 1. Directory Setup
 Once you run your project script (e.g., NMR_plot_MyProtein.py) for the first time, it will generate an empty folder for your labels at input_csv/MyProtein/. Place your CSV files in there.
@@ -94,7 +135,7 @@ Once you run your project script (e.g., NMR_plot_MyProtein.py) for the first tim
 ### 2. CSV Format
 The CSV file must contain the following exactly named columns:
 
-* Residue: The text label to display (e.g., "A24", "ASF1A").
+* Residue: The text label to display (e.g., "A24").
 * position_1: The X-axis coordinate (e.g., ¹H ppm).
 * position_2: The Y-axis coordinate (e.g., ¹⁵N or ¹³C ppm).
 

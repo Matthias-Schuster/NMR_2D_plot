@@ -52,6 +52,7 @@ def setup_nmr_project(
         "out_single": project_out / "single",
         "out_overlay": project_out / "overlay",
         "out_grid": project_out / "grid",
+        "out_strip": project_out / "strips",
         "csv_dir": root_dir / csv_folder / project_name,
     }
 
@@ -60,6 +61,7 @@ def setup_nmr_project(
         paths["out_single"].mkdir(parents=True, exist_ok=True)
         paths["out_overlay"].mkdir(parents=True, exist_ok=True)
         paths["out_grid"].mkdir(parents=True, exist_ok=True)
+        paths["out_strip"].mkdir(parents=True, exist_ok=True)
         paths["csv_dir"].mkdir(parents=True, exist_ok=True)
 
     if verbose:
@@ -127,6 +129,7 @@ def build_plot_dict(**kwargs):
         "out_single": paths.get("out_single", ""),
         "out_grid": paths.get("out_grid", ""),
         "out_overlay": paths.get("out_overlay", ""),
+        "out_strip": paths.get("out_strip", ""),
         "peak_ellipse_x": kwargs.get("peak_ellipse_x", 0.08),
         "peak_ellipse_y": kwargs.get("peak_ellipse_y", 0.8),
         "show_ellipse": kwargs.get("show_ellipse", True),

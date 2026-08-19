@@ -12,8 +12,11 @@ from matplotlib.transforms import Bbox
 from adjustText import adjust_text
 import os
 import contextlib
+import copy
 
-# Plot_func V1.2
+# Plot_func V1.3
+# Includes 3D Strip Overlays, Dynamic Negative Peak Coloring and Dynamic Spectra Styles
+
 
 # Global dictionary to store pre-calculated contour vertices
 _CONTOUR_CACHE = {}
@@ -114,30 +117,50 @@ def apply_formatting(ax, p, title=None, is_grid=False, add_labels=False):
 
 def draw_contours(ax, dic, data, p, contour_start, color):
     """Handles ppm scale calculation and both positive/negative contour plotting."""
-    if isinstance(color, list):
-        color = tuple(color)
 
-    # 1. Create cache key
-    cache_key = (id(data), contour_start, p["factor"], p["lines"], p["negative"], color)
+    # 1. Determine if 'color' contains a pair for [positive, negative]
+    is_two_colors = (
+        isinstance(color, (list, tuple))
+        and len(color) == 2
+        and isinstance(color[0], (str, list, tuple))
+    )
+
+    if is_two_colors:
+        pos_color = color[0]
+        neg_color = color[1]
+        negative = True
+    else:
+        pos_color = color
+        neg_color = None
+        negative = False
+
+    # Convert lists to tuples to make them hashable for the cache key
+    if isinstance(pos_color, (list, np.ndarray)):
+        pos_color = tuple(pos_color)
+    if isinstance(neg_color, (list, np.ndarray)):
+        neg_color = tuple(neg_color)
+
+    # 2. Create cache key
+    cache_key = (id(data), contour_start, p["factor"], p["lines"], negative, pos_color, neg_color)
 
     x_ppm, y_ppm = read_hsqc_bruker_pdata(dic, data)
     extent = (x_ppm[0], x_ppm[-1], y_ppm[0], y_ppm[-1])
 
-    # 2. IF IN CACHE: Draw the lines directly from memory
+    # 3. IF IN CACHE: Draw the lines directly from memory
     if cache_key in _CONTOUR_CACHE:
         cached = _CONTOUR_CACHE[cache_key]
 
         # Draw Positive Contours
         lc_pos = LineCollection(
-            cached["pos_paths"], colors=color, linewidths=p["line_width"], alpha=p["alpha"]
+            cached["pos_paths"], colors=pos_color, linewidths=p["line_width"], alpha=p["alpha"]
         )
         ax.add_collection(lc_pos)
 
         # Draw Negative Contours
-        if p["negative"] and cached["neg_paths"]:
+        if negative and cached["neg_paths"]:
             lc_neg = LineCollection(
                 cached["neg_paths"],
-                colors=p["neg_color"],
+                colors=neg_color,
                 linewidths=p["line_width"],
                 alpha=p["alpha"],
                 linestyles="dashed",
@@ -145,24 +168,26 @@ def draw_contours(ax, dic, data, p, contour_start, color):
             ax.add_collection(lc_neg)
 
         # Attach the legend dummy method directly to the object
-        lc_pos.legend_elements = lambda: ([Line2D([0], [0], color=color, lw=p["line_width"])], [""])
+        lc_pos.legend_elements = lambda: (
+            [Line2D([0], [0], color=pos_color, lw=p["line_width"])],
+            [""],
+        )
 
         return lc_pos
 
-    # 3. IF NOT IN CACHE: Perform standard calculation
+    # 4. IF NOT IN CACHE: Perform standard calculation
     levels = contour_start * p["factor"] ** np.arange(p["lines"])
 
     # Plot Positive Contours
     clp = ax.contour(
-        data, levels, colors=color, linewidths=p["line_width"], extent=extent, alpha=p["alpha"]
+        data, levels, colors=pos_color, linewidths=p["line_width"], extent=extent, alpha=p["alpha"]
     )
 
-    # Extract positive paths directly (Matplotlib 3.8+ syntax)
+    # Extract positive paths directly
     pos_paths = []
     for path in clp.get_paths():
         pos_paths.extend(path.to_polygons())
 
-    negative = p["negative"]
     neg_paths = []
 
     # Plot Negative Contours
@@ -171,17 +196,17 @@ def draw_contours(ax, dic, data, p, contour_start, color):
         cln = ax.contour(
             data,
             neg_levels,
-            colors=p["neg_color"],
+            colors=neg_color,
             linewidths=p["line_width"],
             extent=extent,
             alpha=p["alpha"],
         )
 
-        # Extract negative paths directly (Matplotlib 3.8+ syntax)
+        # Extract negative paths directly
         for path in cln.get_paths():
             neg_paths.extend(path.to_polygons())
 
-    # 4. Save to global cache
+    # 5. Save to global cache
     _CONTOUR_CACHE[cache_key] = {"pos_paths": pos_paths, "neg_paths": neg_paths}
 
     return clp
@@ -375,8 +400,8 @@ def push_texts_out_of_obstacle_bboxes_fast(
             text.set_position(new_data)
             moved_any = True
 
-        if not moved_any:
-            break
+            if not moved_any:
+                break
 
 
 def draw_final_connectors(ax, x, y, texts, min_distance_px=2, lw=0.5, alpha=0.5, color="black"):
@@ -452,10 +477,10 @@ def adjust_all_labels(ax, texts, x, y, p):
     obstacle_padding_px = 1
 
     # Iteration Control ("Cooling" parameters)
-    cycles = p.get("cycles", 10)            # Number of push/relax cycles
-    base_max_move = 30.0                    # Starting movement limit in pixels
-    base_pull_force = 0.1                   # Starting pull back to the peak
-    iterations = p.get("iterations", 10)    # Number of max iterations
+    cycles = p.get("cycles", 10)  # Number of push/relax cycles
+    base_max_move = 30.0  # Starting movement limit in pixels
+    base_pull_force = 0.1  # Starting pull back to the peak
+    iterations = p.get("iterations", 10)  # Number of max iterations
 
     # 1. Build obstacle boxes
     obstacle_bboxes = _ellipse_bboxes_from_data(
@@ -583,7 +608,7 @@ def plot_everything(p):
     result_folder(folder)
 
     for i, f in enumerate(files):
-        if dic_all[i] is None:
+        if dic_all[i] is None or data_all[i].ndim != 2:
             continue
 
         fig = plt.figure(dpi=p["dpi"], figsize=(p["xsize"], p["ysize"]))
@@ -614,7 +639,8 @@ def overlay(p, get, name):
     all_texts, all_x, all_y = [], [], []
 
     for idx in get:
-        if dic_all[idx] is None:
+        if dic_all[idx] is None or data_all[idx].ndim != 2:
+            print(f"  -> Skipping [{idx}] {p['file_names'][idx]}: not a 2D spectrum.")
             continue
         names.append(p["file_names"][idx])
         clp = draw_contours(ax, dic_all[idx], data_all[idx], p, p["cont"][idx], p["colors"][idx])
@@ -662,7 +688,7 @@ def grid_plot(p, row=2, col=2, name="grid"):
 
     axes_flat = np.atleast_1d(axes).flatten()
     for i, ax in enumerate(axes_flat):
-        if i < len(dic_all) and dic_all[i]:
+        if i < len(dic_all) and dic_all[i] is not None and data_all[i].ndim == 2:
             apply_formatting(ax, p, title=p["file_names"][i], is_grid=True)
             draw_contours(ax, dic_all[i], data_all[i], p, p["cont"][i], p["colors"][i])
 
@@ -703,6 +729,14 @@ def grid_plot_over(p, over, row=2, col=2, reverse=False, name="grid_over"):
         if i < len(indices):
             idx = indices[i]
             apply_formatting(ax, p, title=p["file_names"][idx], is_grid=True)
+            # Skip if either the base spectrum or the overlay spectrum are missing or not 2D
+            if (
+                dic_all[idx] is None
+                or data_all[idx].ndim != 2
+                or dic_all[over] is None
+                or data_all[over].ndim != 2
+            ):
+                continue
             if dic_all[idx] is None or dic_all[over] is None:
                 continue
 
@@ -771,7 +805,7 @@ def grid_plot_over_xp(p, overlay_groups, row=2, col=2, name="grid_over_xp"):
             all_texts, all_x, all_y = [], [], []
 
             for spec_idx in overlay_groups[i]:
-                if dic_all[spec_idx] is None:
+                if dic_all[spec_idx] is None or data_all[spec_idx].ndim != 2:
                     continue
                 subplot_names.append(p["file_names"][spec_idx])
 
@@ -809,7 +843,358 @@ def grid_plot_over_xp(p, overlay_groups, row=2, col=2, name="grid_over_xp"):
     save_and_clear(fig, folder, name, p)
 
 
+# --- 3D STRIP FUNCTIONS ---
+
+
+def get_dim_ppm(dic_3d, data_3d, dim):
+    """Calculates the PPM axis for a 3D dimension (0: F1/proc3s, 1: F2/proc2s, 2: F3/procs)."""
+    if dim == 0:
+        return _ppm_axis(
+            data_3d.shape[0],
+            dic_3d["proc3s"]["OFFSET"],
+            dic_3d["proc3s"]["SW_p"],
+            dic_3d["proc3s"]["SF"],
+        )
+    elif dim == 1:
+        return _ppm_axis(
+            data_3d.shape[1],
+            dic_3d["proc2s"]["OFFSET"],
+            dic_3d["proc2s"]["SW_p"],
+            dic_3d["proc2s"]["SF"],
+        )
+    elif dim == 2:
+        return _ppm_axis(
+            data_3d.shape[2],
+            dic_3d["procs"]["OFFSET"],
+            dic_3d["procs"]["SW_p"],
+            dic_3d["procs"]["SF"],
+        )
+    else:
+        raise ValueError("dim must be 0, 1, or 2")
+
+
+def extract_2d_strip(dic_3d, data_3d, z_slice=None, slice_index=None, slice_axis=1):
+    """
+    Extracts a 2D plane from a 3D Bruker dataset by PPM or point index.
+    Remaps the dictionary headers to match standard 2D processing functions.
+
+    slice_axis:
+      0: Fix F1 (proc3s) -> extracts F2-F3 plane
+      1: Fix F2 (proc2s) -> extracts F1-F3 plane (most common, e.g. 15N slice in HNCACB)
+      2: Fix F3 (procs)  -> extracts F1-F2 plane
+    """
+    ppm_axis = get_dim_ppm(dic_3d, data_3d, slice_axis)
+
+    # If PPM is provided, find the closest point index automatically
+    if slice_index is None:
+        if z_slice is None:
+            raise ValueError("Provide either z_slice or slice_index.")
+        slice_index = int(np.argmin(np.abs(ppm_axis - z_slice)))
+
+    actual_ppm = ppm_axis[slice_index]
+    dic_2d = copy.deepcopy(dic_3d)
+
+    if slice_axis == 0:
+        data_2d = data_3d[slice_index, :, :]
+    elif slice_axis == 1:
+        data_2d = data_3d[:, slice_index, :]
+        dic_2d["proc2s"] = dic_3d["proc3s"]  # Map F1 (proc3s) to Y-axis (proc2s)
+    elif slice_axis == 2:
+        data_2d = data_3d[:, :, slice_index]
+        dic_2d["procs"] = dic_3d["proc2s"]
+        dic_2d["proc2s"] = dic_3d["proc3s"]
+    else:
+        raise ValueError("slice_axis must be 0, 1, or 2")
+
+    return dic_2d, data_2d, actual_ppm, slice_index
+
+
+def plot_strip(
+    p,
+    indices,
+    z_slice=None,
+    slice_index=None,
+    slice_axis=1,
+    name=None,
+    reverse=False,
+    x_slice=None,
+    strip_width=0.3,
+):
+    """
+    Plots a 2D strip from one or more 3D spectra.
+    Accepts a single integer (e.g., indices=0) or a list (e.g., indices=[0, 1]).
+    Can be optionally centered on an x_slice with a specific strip_width.
+    """
+    # Standardize input to a list
+    if isinstance(indices, int):
+        indices = [indices]
+
+    # Use the guaranteed out_strip path from setup (redundant code removed!)
+    folder = p["out_strip"]
+    result_folder(folder)
+
+    slices_data = []
+    actual_ppm_base = None
+    base_name_parts = []
+
+    # Extract 2D slices for all requested 3D spectra
+    for idx in indices:
+        dic = p["dic_all"][idx]
+        data = p["data_all"][idx]
+
+        if dic is None or data.ndim != 3:
+            print(f"  -> Skipping [{idx}]: missing or not 3D.")
+            continue
+
+        dic_2d, data_2d, actual_ppm, _ = extract_2d_strip(
+            dic, data, z_slice, slice_index, slice_axis
+        )
+
+        # Use the ppm of the first valid spectrum for the title
+        if actual_ppm_base is None:
+            actual_ppm_base = actual_ppm
+
+        slices_data.append((idx, dic_2d, data_2d))
+        base_name_parts.append(p["file_names"][idx])
+
+    if not slices_data:
+        print("  -> Error: No valid 3D spectra found.")
+        return
+
+    # --- NEW NAMING LOGIC ---
+    is_overlay = len(slices_data) > 1
+    style = p.get("spectra_type", "")
+    style_suffix = f"_{style}" if style else ""
+
+    if name:
+        base_name = name
+        save_name = f"{base_name}{style_suffix}_{actual_ppm_base:.2f}ppm"
+    else:
+        if is_overlay:
+            base_name = f"Overlay_{'_'.join(base_name_parts)}"
+            save_name = f"{base_name}{style_suffix}_strip_overlay_{actual_ppm_base:.2f}ppm"
+        else:
+            base_name = base_name_parts[0]
+            save_name = f"{base_name}{style_suffix}_strip_{actual_ppm_base:.2f}ppm"
+
+    title = f"{base_name} ({actual_ppm_base:.2f} ppm)"
+    if x_slice is not None:
+        title += f"\n{x_slice:.2f} ppm"
+
+    p_temp = p.copy()
+    if x_slice is not None:
+        half_width = strip_width / 2.0
+        p_temp["xlim"] = (x_slice + half_width, x_slice - half_width)
+
+    fig = plt.figure(dpi=p_temp["dpi"], figsize=(p_temp["xsize"], p_temp["ysize"]))
+    ax = fig.add_subplot()
+
+    apply_formatting(ax, p_temp, title=title, add_labels=True)
+
+    h_all = []
+    names_order = []
+
+    # Determine plotting order (reverse list if reverse=True)
+    plot_data = reversed(slices_data) if reverse else slices_data
+
+    # Draw all contours
+    for idx, dic_2d, data_2d in plot_data:
+        c = draw_contours(ax, dic_2d, data_2d, p_temp, p_temp["cont"][idx], p_temp["colors"][idx])
+        names_order.append(p["file_names"][idx])
+
+        h, _ = c.legend_elements()
+        if h:
+            h_all.append(h[0])
+
+    if x_slice is not None:
+        ax.axvline(x=x_slice, color="black", linestyle="--", linewidth=0.5, alpha=0.5, zorder=0)
+
+    # Apply Legend (only if it's an overlay and legends are enabled)
+    if is_overlay and h_all and p_temp.get("legend", True):
+        leg = ax.legend(h_all, names_order, loc="upper left", framealpha=0.8, handlelength=1.5)
+        for line in leg.get_lines():
+            line.set_linewidth(2.0)
+
+    # --- NEW SAVE CALL ---
+    # We pop spectra_type out of p_temp so save_and_clear doesn't append it again at the very end
+    p_temp.pop("spectra_type", None)
+    save_and_clear(fig, folder, save_name, p_temp)
+
+
+def strip_grid_plot(
+    p,
+    indices,
+    slices,
+    slice_axis=1,
+    row=1,
+    col=3,
+    name="strip_grid",
+    strip_width=0.3,
+    reverse=False,
+):
+    """
+    Plots a grid of 2D strips from one or more 3D spectra.
+    Accepts a single integer (e.g., indices=0) or a list (e.g., indices=[0, 1]).
+    """
+    if isinstance(indices, int):
+        indices = [indices]
+
+    folder = p["out_strip"]
+    result_folder(folder)
+
+    valid_indices = []
+    for idx in indices:
+        if p["dic_all"][idx] is not None and p["data_all"][idx].ndim == 3:
+            valid_indices.append(idx)
+        else:
+            print(f"  -> Skipping [{idx}]: missing or not 3D.")
+
+    if not valid_indices:
+        print("  -> Error: No valid 3D spectra found.")
+        return
+
+    is_overlay = len(valid_indices) > 1
+    if is_overlay and name == "strip_grid":
+        name = "strip_grid_overlay"
+
+    fig, axes = plt.subplots(
+        row,
+        col,
+        dpi=p["dpi"],
+        figsize=(p["xsize"] * col, p["ysize"] * row),
+        sharey=True,
+        sharex=False,
+        gridspec_kw={"wspace": 0, "hspace": 0},
+    )
+
+    if p["labels"]:
+        fig.supxlabel(p["x_label"], y=p["grid_x"])
+        fig.supylabel(p["y_label_grid"], x=p["grid_y"])
+
+    axes_flat = np.atleast_1d(axes).flatten()
+
+    for i, ax in enumerate(axes_flat):
+        if i < len(slices):
+            slice_val = slices[i]
+
+            if isinstance(slice_val, dict):
+                sl_z = slice_val.get("z_slice")
+                sl_idx = slice_val.get("slice_index")
+                sl_title = slice_val.get("title")
+                sl_x = slice_val.get("x_slice")
+            else:
+                sl_z = float(slice_val)
+                sl_idx = None
+                sl_title = None
+                sl_x = None
+
+            extracted_data = []
+            actual_ppm_base = None
+
+            for idx in valid_indices:
+                dic_2d, data_2d, actual_ppm, _ = extract_2d_strip(
+                    p["dic_all"][idx], p["data_all"][idx], sl_z, sl_idx, slice_axis
+                )
+                if actual_ppm_base is None:
+                    actual_ppm_base = actual_ppm
+                extracted_data.append((idx, dic_2d, data_2d))
+
+            # Titel-Formatierung: Zeigt Name + Z-Slice + X-Slice an
+            if sl_title:
+                title = f"{sl_title}\n({actual_ppm_base:.2f} ppm)"
+            else:
+                title = f"{actual_ppm_base:.2f} ppm"
+
+            if sl_x is not None:
+                title += f"\n{sl_x:.2f} ppm"
+
+            p_temp = p.copy()
+            if sl_x is not None:
+                half_width = strip_width / 2.0
+                p_temp["xlim"] = (sl_x + half_width, sl_x - half_width)
+
+            apply_formatting(ax, p_temp, title=title, is_grid=True)
+
+            plot_data = reversed(extracted_data) if reverse else extracted_data
+
+            h_all = []
+            names_order = []
+
+            for idx, dic_2d, data_2d in plot_data:
+                c = draw_contours(
+                    ax,
+                    dic_2d,
+                    data_2d,
+                    p_temp,
+                    p_temp["cont"][idx],
+                    p_temp["colors"][idx],
+                )
+                names_order.append(p["file_names"][idx])
+
+                h, _ = c.legend_elements()
+                if h:
+                    h_all.append(h[0])
+
+            if sl_x is not None:
+                ax.axvline(
+                    x=sl_x, color="black", linestyle="--", linewidth=0.5, alpha=0.5, zorder=0
+                )
+
+            if not ax.get_subplotspec().is_last_row():
+                ax.tick_params(labelbottom=False)
+
+            # Legende nur im ersten Subplot (i == 0) bei Overlays
+            if i == 0 and is_overlay and h_all and p_temp.get("legend", True):
+                leg = ax.legend(
+                    h_all,
+                    names_order,
+                    loc="upper left",
+                    framealpha=0.8,
+                    handlelength=1.5,
+                )
+                for line in leg.get_lines():
+                    line.set_linewidth(2.0)
+
+        else:
+            ax.axis("off")
+
+    save_and_clear(fig, folder, name, p)
+
+
 # --- UTILITIES ---
+
+
+def set_style(p_dict, style_name, styles_dict=None):
+    """
+    Updates the plot parameters dictionary in-place with a specific spectra style.
+    Looks for styles_dict passed directly, or in p_dict['SPECTRA_STYLES'].
+    """
+    # 1. Determine where to get the styles from
+    target_styles = styles_dict or p_dict.get("SPECTRA_STYLES")
+
+    if not target_styles:
+        print("  -> Error: No SPECTRA_STYLES dictionary found in p or passed to set_style!")
+        return
+
+    # 2. Apply the chosen style
+    if style_name in target_styles:
+        p_dict.update(target_styles[style_name])
+        p_dict["spectra_type"] = style_name  # Keeps track of the name for file exports
+    else:
+        print(f"  -> Warning: Style '{style_name}' not found in SPECTRA_STYLES!")
+
+
+def spectrum_menu(p):
+    """Prints a terminal menu of loaded spectra and their dimensionality."""
+    print("\n----- Spectrum Menu -----")
+    for i, name in enumerate(p["file_names"]):
+        data = p["data_all"][i]
+        if data is not None:
+            dim_text = f"{data.ndim}D"
+        else:
+            dim_text = "Missing/Error"
+        print(f" [{i}] -> {name} ({dim_text})")
+    print("-------------------------\n")
 
 
 def read_hsqc_bruker_pdata(dic, data):
