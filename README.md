@@ -67,7 +67,7 @@ data = [
     # (Folder, Name, Contour Start, Color, CSV File)
     ('250905_Protein_1/700', "Protein 1", 7e7, "black", "Protein1_labels.csv"),
     ('250905_Protein_2/700', "Protein 2", 5e8, "tab:blue"), # CSV is optional!
-    ('250905_Protein_3/700', "Protein 3", 6e8, ["tab:orange", "tab:cyan")] # a second color activates negative contours!
+    ('250905_Protein_3/700', "Protein 3", 6e8, ["tab:orange", "tab:cyan"]) # a second color activates negative contours!
 ]
 ```
 
