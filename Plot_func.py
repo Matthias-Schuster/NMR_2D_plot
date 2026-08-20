@@ -672,6 +672,11 @@ def grid_plot(p, row=2, col=2, name="grid"):
     folder = p.get("out_grid")
     result_folder(folder)
 
+    # 1. FILTER DATA: Pre-filter to only include valid 2D spectra indices
+    valid_indices = [
+        i for i in range(len(dic_all)) if dic_all[i] is not None and data_all[i].ndim == 2
+    ]
+
     fig, axes = plt.subplots(
         row,
         col,
@@ -688,14 +693,18 @@ def grid_plot(p, row=2, col=2, name="grid"):
 
     axes_flat = np.atleast_1d(axes).flatten()
     for i, ax in enumerate(axes_flat):
-        if i < len(dic_all) and dic_all[i] is not None and data_all[i].ndim == 2:
-            apply_formatting(ax, p, title=p["file_names"][i], is_grid=True)
-            draw_contours(ax, dic_all[i], data_all[i], p, p["cont"][i], p["colors"][i])
+        # Only iterate up to the number of valid 2D spectra we have
+        if i < len(valid_indices):
+            idx = valid_indices[i]
+
+            apply_formatting(ax, p, title=p["file_names"][idx], is_grid=True)
+            draw_contours(ax, dic_all[idx], data_all[idx], p, p["cont"][idx], p["colors"][idx])
 
             # 2-Step Labeling
-            t, x, y = add_labels_from_csv(ax, p["csv_files"][i], p)
+            t, x, y = add_labels_from_csv(ax, p["csv_files"][idx], p)
             adjust_all_labels(ax, t, x, y, p)
         else:
+            # Turn off axes for completely empty grid spots
             ax.axis("off")
 
     save_and_clear(fig, folder, name, p)
@@ -707,8 +716,17 @@ def grid_plot_over(p, over, row=2, col=2, reverse=False, name="grid_over"):
     folder = p.get("out_grid")
     result_folder(folder)
 
-    # Prepare data (excluding the 'over' index for the grid base)
-    indices = [i for i in range(len(dic_all)) if i != over]
+    # 1. EARLY EXIT: Ensure the overlay spectrum itself is valid and 2D
+    if dic_all[over] is None or data_all[over].ndim != 2:
+        print(f"  -> Error: Overlay spectrum [{over}] is missing or not a 2D spectrum.")
+        return
+
+    # 2. FILTER DATA: Exclude the 'over' index AND filter out any 3D/missing spectra upfront
+    indices = [
+        i
+        for i in range(len(dic_all))
+        if i != over and dic_all[i] is not None and data_all[i].ndim == 2
+    ]
 
     fig, axes = plt.subplots(
         row,
@@ -726,19 +744,12 @@ def grid_plot_over(p, over, row=2, col=2, reverse=False, name="grid_over"):
 
     axes_flat = np.atleast_1d(axes).flatten()
     for i, ax in enumerate(axes_flat):
+        # Only plot if we still have valid 2D spectra in our filtered list
         if i < len(indices):
             idx = indices[i]
+
+            # Now safe to apply formatting since we know it's a 2D spectrum
             apply_formatting(ax, p, title=p["file_names"][idx], is_grid=True)
-            # Skip if either the base spectrum or the overlay spectrum are missing or not 2D
-            if (
-                dic_all[idx] is None
-                or data_all[idx].ndim != 2
-                or dic_all[over] is None
-                or data_all[over].ndim != 2
-            ):
-                continue
-            if dic_all[idx] is None or dic_all[over] is None:
-                continue
 
             all_texts, all_x, all_y = [], [], []
 
@@ -772,6 +783,7 @@ def grid_plot_over(p, over, row=2, col=2, reverse=False, name="grid_over"):
             # Adjust labels for this subplot together
             adjust_all_labels(ax, all_texts, all_x, all_y, p)
         else:
+            # Turn off axes for empty grid spots
             ax.axis("off")
 
     save_and_clear(fig, folder, name, p)
