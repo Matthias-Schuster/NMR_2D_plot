@@ -10,18 +10,11 @@ import Plot_func as pf
 # ==========================================
 PROJECT_NAME, paths = setup_nmr_project(__file__)
 
-# ==========================================
-# 2. I/O HUB
-# ==========================================
-csv_dir = paths["csv_dir"]
-out_single = paths["out_single"]
-out_overlay = paths["out_overlay"]
-out_grid = paths["out_grid"]
-
 # %% =======================================
-# 3. IMPORT ALL SPECTRA
+# 2. IMPORT ALL SPECTRA
 # ==========================================
 
+# directory of your NMR files
 base_dir = Path("/User/Documents/NMR_Spectra")
 
 # Data Format (folder, name, contour, color (second color for negative peaks), label.csv(optional))
@@ -37,7 +30,9 @@ data = [
 files, file_names, cont, colors, csv_files = pf.parse_plot_data(data, base_dir)
 # colors = pf.colormap(files, maps='viridis')  # use a colormap
 
-# %% SETUP PARAMETERS
+# %% =======================================
+# 3. SETUP PARAMETERS
+# ==========================================
 
 dpi = 300               # dpi of the figure
 save_png = True         # saves svg files (makes it slower)
@@ -118,6 +113,21 @@ SPECTRA_STYLES = {
         "line_width": 0.3,
     },
 
+    "IDP": {
+        "xlim": (8.9, 6.6),
+        "ylim": (130, 110),
+        "x_label": "$^1$H [ppm]",
+        "y_label": "$^{15}$N\n[ppm]",
+        "y_label_grid": "$^{15}$N [ppm]",
+        "xticks": 0.5,
+        "xminorticks": 0.25,
+        "yticks": 5,
+        "yminorticks": 1,
+        "line_width": 0.3,
+        "xsize": 4,
+        "ysize": 7,
+    },
+
     "ZOOM": {
         "xlim": (8.8, 8),
         "ylim": (118, 114),
@@ -193,18 +203,22 @@ plt.rcParams["axes.facecolor"] = "None"
 print("Loading NMR data into memory...")
 dic_all, data_all = pf.read_data(files)
 
-# %% INFO PARAMETERS
+# %% LOAD AND TRANSFER INFO PARAMETERS TO THE FUNCTIONS
 p = build_plot_dict(**locals())
 p["SPECTRA_STYLES"] = SPECTRA_STYLES
-pf.set_style(p, "15N")
 
-# %% FILES TO OVERLAY
+# %% SPECTRUM MENU
 # this gives you the number of the spectrum for the overlay plot
 pf.spectrum_menu(p)
 
-# %% ----------------------------------
-# PLOT SPECTRA
-# -------------------------------------
+# %% =======================================
+# 4. PLOT YOUR SPECTRA
+# ==========================================
+
+# -- set your spectra style --
+pf.set_style(p, "15N")
+
+# -- plot all 2D spectra --
 if True:
     pf.plot_everything(p)
 
@@ -239,7 +253,8 @@ if False:
         row=2,
         col=2,
         overlay_groups=[
-            [1, 2],
+            [1],
+            [2],
             [2, 1],
             [1, 2, 3],
         ],

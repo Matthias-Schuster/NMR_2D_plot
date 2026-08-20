@@ -1167,7 +1167,7 @@ def strip_grid_plot(
 def set_style(p_dict, style_name, styles_dict=None):
     """
     Updates the plot parameters dictionary in-place with a specific spectra style.
-    Looks for styles_dict passed directly, or in p_dict['SPECTRA_STYLES'].
+    Prevents parameter leakage by restoring from a base state before applying the style.
     """
     # 1. Determine where to get the styles from
     target_styles = styles_dict or p_dict.get("SPECTRA_STYLES")
@@ -1176,12 +1176,24 @@ def set_style(p_dict, style_name, styles_dict=None):
         print("  -> Error: No SPECTRA_STYLES dictionary found in p or passed to set_style!")
         return
 
-    # 2. Apply the chosen style
-    if style_name in target_styles:
-        p_dict.update(target_styles[style_name])
-        p_dict["spectra_type"] = style_name  # Keeps track of the name for file exports
-    else:
+    if style_name not in target_styles:
         print(f"  -> Warning: Style '{style_name}' not found in SPECTRA_STYLES!")
+        return
+
+    # 2. Save the initial configuration on the first run
+    # (A shallow copy prevents duplicating heavy NMR data arrays in memory)
+    if "_base_state" not in p_dict:
+        p_dict["_base_state"] = p_dict.copy()
+
+    # 3. Wipe current settings and restore to the clean base state
+    base_state = p_dict["_base_state"]
+    p_dict.clear()
+    p_dict.update(base_state)
+    p_dict["_base_state"] = base_state  # Re-insert the base state for future calls
+
+    # 4. Apply the chosen style
+    p_dict.update(target_styles[style_name])
+    p_dict["spectra_type"] = style_name  # Keeps track of the name for file exports
 
 
 def spectrum_menu(p):

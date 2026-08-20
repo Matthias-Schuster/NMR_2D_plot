@@ -75,7 +75,7 @@ data = [
 Select the pre-configured axis limits and labels for your experiment:
 
 ```Python
-pf.set_style(p, "15N")  # Options: "15N", "13C", "CON", "ZOOM", "SIZE"
+pf.set_style(p, "15N")  # Options: "15N", "13C", "CON", "ZOOM", "IDP"
 ```
 You can modify the Styles of the SPECTRA_STYLES dictionary!
 
